@@ -1,0 +1,858 @@
+<!doctype html> <html lang=en > <meta charset=UTF-8 > <meta name=viewport  content="width=device-width, initial-scale=1"> <link rel=stylesheet  href="/Bayesian-Julia/libs/katex/katex.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/libs/highlight/github.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/css/jtd.css"> <link rel=icon  href="/Bayesian-Julia/assets/favicon.ico"> <title>Markov Chain Monte Carlo &#40;MCMC&#41;</title> <div class=page-wrap > <div class=side-bar > <div class=header > <a href="/Bayesian-Julia/" class=title > Bayesian Stats </a> </div> <label for=show-menu  class=show-menu >MENU</label> <input type=checkbox  id=show-menu  role=button > <div class=menu  id=side-menu > <ul class=menu-list > <li class="menu-list-item "><a href="/Bayesian-Julia/" class="menu-list-link ">Home</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/1_why_Julia/" class="menu-list-link ">1. Why Julia?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/2_bayes_stats/" class="menu-list-link ">2. What is Bayesian Statistics?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/3_prob_dist/" class="menu-list-link ">3. Common Probability Distributions</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/4_Turing/" class="menu-list-link ">4. How to use Turing</a> <li class="menu-list-item active"><a href="/Bayesian-Julia/pages/5_MCMC/" class="menu-list-link active">5. Markov Chain Monte Carlo (MCMC)</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/6_linear_reg/" class="menu-list-link ">6. Bayesian Linear Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/7_logistic_reg/" class="menu-list-link ">7. Bayesian Logistic Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/8_count_reg/" class="menu-list-link ">8. Bayesian Regression with Count Data</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/9_robust_reg/" class="menu-list-link ">9. Robust Bayesian Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/10_multilevel_models/" class="menu-list-link ">10. Multilevel Models</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/11_Turing_tricks/" class="menu-list-link ">11. Computational Tricks with Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/12_epi_models/" class="menu-list-link ">12. Bayesian Epidemiological Models</a> </ul> </div> <div class=footer > <a href="https://www.julialang.org"><img style="height:50px;padding-left:10px;margin-bottom:15px;" src="https://julialang.org/assets/infra/logo.svg" alt="Julia Logo"></a> </div> </div> <div class=main-content-wrap > <div class=main-content > <div class=main-header > <a id=github  href="https://github.com/storopoli/Bayesian-Julia">Code on GitHub</a> </div> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-186284914-6"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-186284914-6'); </script> <div class=franklin-content ><div class=franklin-toc ><ol><li><a href="#what_is_the_denominator_ptextdata_for">What is the denominator \(P(\text{data})\) for?</a><li><a href="#what_if_we_remove_this_denominator">What if we remove this denominator?</a><li><a href="#markov_chain_monte_carlo_mcmc__2">Markov Chain Monte Carlo &#40;MCMC&#41;</a><ol><li><a href="#monte_carlo_method">Monte Carlo Method</a><li><a href="#simulations">Simulations</a><li><a href="#metropolis_and_metropolis-hastings">Metropolis and Metropolis-Hastings</a><ol><li><a href="#metropolis_algorithm">Metropolis Algorithm</a><li><a href="#limitations_of_the_metropolis_algorithm">Limitations of the Metropolis Algorithm</a><li><a href="#metropolis_implementation">Metropolis – Implementation</a><ol><li><a href="#metropolis_visual_intuition">Metropolis – Visual Intuition</a></ol></ol><li><a href="#gibbs">Gibbs</a><ol><li><a href="#gibbs_algorithm">Gibbs Algorithm</a><li><a href="#limitations_of_the_gibbs_algorithm">Limitations of the Gibbs Algorithm</a><li><a href="#gibbs_implementation">Gibbs – Implementation</a><ol><li><a href="#gibbs_visual_intuition">Gibbs – Visual Intuition</a></ol></ol><li><a href="#what_happens_when_we_run_markov_chains_in_parallel">What happens when we run Markov chains in parallel?</a></ol><li><a href="#hamiltonian_monte_carlo_hmc">Hamiltonian Monte Carlo – HMC</a><ol><li><a href="#momentum_distribution_pphi">Momentum Distribution – \(P(\phi)\)</a><li><a href="#hmc_algorithm">HMC Algorithm</a><li><a href="#hmc_implementation">HMC – Implementation</a><ol><li><a href="#hmc_visual_intuition">HMC – Visual Intuition</a></ol><li><a href="#hmc_complex_topologies">HMC – Complex Topologies</a></ol><li><a href="#i_understood_nothing">&quot;I understood nothing...&quot;</a><li><a href="#mcmc_metrics">MCMC Metrics</a><ol><li><a href="#what_looks_like_when_your_model_doesnt_converge">What looks like when your model doesn&#39;t converge</a><li><a href="#mcmc_visualizations">MCMC Visualizations</a></ol><li><a href="#how_to_make_your_markov_chains_converge">How to make your Markov chains converge</a><li><a href="#footnotes">Footnotes</a><li><a href="#references">References</a></ol></div> <h1 id=markov_chain_monte_carlo_mcmc ><a href="#markov_chain_monte_carlo_mcmc" class=header-anchor >Markov Chain Monte Carlo &#40;MCMC&#41;</a></h1> <p>The main computational barrier for Bayesian statistics is the denominator \(P(\text{data})\) of the Bayes formula:</p> <a id=bayes  class=anchor ></a>\[ P(\theta \mid \text{data})=\frac{P(\theta) \cdot P(\text{data} \mid \theta)}{P(\text{data})} \] <p>In discrete cases we can turn the denominator into a sum of all parameters using the chain rule of probability:</p> <a id=chainrule  class=anchor ></a>\[ P(A,B \mid C)=P(A \mid B,C) \times P(B \mid C) \] <p>This is also called marginalization:</p> <a id=discretemarginalization  class=anchor ></a>\[ P(\text{data})=\sum_{\theta} P(\text{data} \mid \theta) \times P(\theta) \] <p>However, in the continuous cases the denominator \(P(\text{data})\) becomes a very large and complicated integral to calculate:</p> <a id=continuousmarginalization  class=anchor ></a>\[ P(\text{data})=\int_{\theta} P(\text{data} \mid \theta) \times P(\theta)d \theta \] <p>In many cases this integral becomes <em>intractable</em> &#40;incalculable&#41; and therefore we must find other ways to calculate the posterior probability \(P(\theta \mid \text{data})\) in <span class=eqref >(<a href="#bayes">1</a>)</span> without using the denominator \(P(\text{data})\).</p> <h2 id=what_is_the_denominator_ptextdata_for ><a href="#what_is_the_denominator_ptextdata_for" class=header-anchor >What is the denominator \(P(\text{data})\) for?</a></h2> <p>Quick answer: to normalize the posterior in order to make it a valid probability distribution. This means that the sum of all probabilities of the possible events in the probability distribution must be equal to 1:</p> <ul> <li><p>in the case of discrete probability distribution: \(\sum_{\theta} P(\theta \mid \text{data}) = 1\)</p> <li><p>in the case of continuous probability distribution: \(\int_{\theta} P(\theta \mid \text{data})d \theta = 1\)</p> </ul> <h2 id=what_if_we_remove_this_denominator ><a href="#what_if_we_remove_this_denominator" class=header-anchor >What if we remove this denominator?</a></h2> <p>When we remove the denominator \((\text{data})\) we have that the posterior \(P(\theta \mid \text{data})\) is <strong>proportional</strong> to the prior multiplied by the likelihood \(P(\theta) \cdot P(\text{data} \mid \theta)\)<sup id="fnref:propto"><a href="#fndef:propto" class=fnref >[1]</a></sup>.</p> <a id=proptobayes  class=anchor ></a>\[ P(\theta \mid \text{data}) \propto P(\theta) \cdot P(\text{data} \mid \theta) \] <p>This <a href="https://youtu.be/8FbqSVFzmoY">YouTube video</a> explains the denominator problem very well, see below:</p> <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube.com/embed/8FbqSVFzmoY' frameborder='0' allowfullscreen></iframe></div> <h2 id=markov_chain_monte_carlo_mcmc__2 ><a href="#markov_chain_monte_carlo_mcmc__2" class=header-anchor >Markov Chain Monte Carlo &#40;MCMC&#41;</a></h2> <p>This is where Markov Chain Monte Carlo comes in. MCMC is a broad class of computational tools for approximating integrals and generating samples from a posterior probability &#40;Brooks, Gelman, Jones &amp; Meng, 2011&#41;. MCMC is used when it is not possible to sample \(\theta\) directly from the subsequent probabilistic distribution \(P(\theta \mid \text{data})\). Instead, we sample in an iterative manner such that at each step of the process we expect the distribution from which we sample \(P^* (\theta^* \mid \text{data})\) &#40;here \(*\) means simulated&#41; becomes increasingly similar to the posterior \(P(\theta \mid \text{data})\). All of this is to eliminate the &#40;often impossible&#41; calculation of the denominator \(P(\text{data})\).</p> <p>The idea is to define an ergodic Markov chain &#40;that is to say that there is a single stationary distribution&#41; of which the set of possible states is the sample space and the stationary distribution is the distribution to be approximated &#40;or sampled&#41;. Let \(X_0, X_1, \dots, X_n\) be a simulation of the chain. The Markov chain converges to the stationary distribution of any initial state \(X_0\) after a large enough number of iterations \(r\), the distribution of the state \(X_r\) will be similar to the stationary distribution, so we can use it as a sample. Markov chains have a property that the probability distribution of the next state depends only on the current state and not on the sequence of events that preceded: \(P(X_{n+1}=x \mid X_{0},X_{1},X_{2},\ldots ,X_{n}) = P(X_{n+1}=x \mid X_{n})\). This property is called Markovian, after the mathematician <a href="https://en.wikipedia.org/wiki/Andrey_Markov">Andrey Markov</a> &#40;see figure below&#41;. Similarly, repeating this argument with \(X_r\) as the starting point, we can use \(X_{2r}\) as a sample, and so on. We can then use the state sequence \(X_r, X_{2r}, X_{3r}, \dots\) as almost independent samples of the stationary distribution of the Markov chain.</p> <p><img src="/Bayesian-Julia/pages/images/andrey_markov.jpg" alt="Andrey Markov" /></p> <p><div class=text-center ><em>Andrey Markov</em></div> <br/></p> <p>The effectiveness of this approach depends on:</p> <ol> <li><p>how big \(r\) must be to ensure a suitably good sample; and</p> <li><p>computational power required for each iteration of the Markov chain.</p> </ol> <p>In addition, it is customary to discard the first iterations of the algorithm as they are usually not representative of the distribution to be approximated. In the initial iterations of MCMC algorithms, generally the Markov current is in a <em>warm-up</em> process<sup id="fnref:warmup"><a href="#fndef:warmup" class=fnref >[2]</a></sup> and its state is far from ideal to start a reliable sampling. It is generally recommended to discard half of the iterations &#40;Gelman, Carlin, Stern, Dunson, Vehtari, &amp; Rubin, 2013a&#41;. For example: if the Markov chain has 4,000 iterations, we discard the first 2,000 as warm-up.</p> <h3 id=monte_carlo_method ><a href="#monte_carlo_method" class=header-anchor >Monte Carlo Method</a></h3> <p>Stanislaw Ulam &#40;figure below&#41;, who participated in the Manhattan project and when trying to calculate the neutron diffusion process for the hydrogen bomb ended up creating a class of methods called <strong><em>Monte Carlo</em></strong>.</p> <p><img src="/Bayesian-Julia/pages/images/stanislaw.jpg" alt="Stanislaw Ulam" /></p> <p><div class=text-center ><em>Stanislaw Ulam</em></div> <br/></p> <p>Monte Carlo methods have the underlying concept of using randomness to solve problems that can be deterministic in principle. They are often used in physical and mathematical problems and are most useful when it is difficult or impossible to use other approaches. Monte Carlo methods are used mainly in three classes of problems: optimization, numerical integration and generating sample from a probability distribution.</p> <p>The idea for the method came to Ulam while playing solitaire during his recovery from surgery, as he thought about playing hundreds of games to statistically estimate the probability of a successful outcome. As he himself mentions in Eckhardt &#40;1987&#41;:</p> <blockquote> <p>&quot;The first thoughts and attempts I made to practice &#91;the Monte Carlo method&#93; were suggested by a question which occurred to me in 1946 as I was convalescing from an illness and playing solitaires. The question was what are the chances that a Canfield solitaire laid out with 52 cards will come out successfully? After spending a lot of time trying to estimate them by pure combinatorial calculations, I wondered whether a more practical method than &quot;abstract thinking&quot; might not be to lay it out say one hundred times and simply observe and count the number of successful plays. This was already possible to envisage with the beginning of the new era of fast computers, and I immediately thought of problems of neutron diffusion and other questions of mathematical physics, and more generally how to change processes described by certain differential equations into an equivalent form interpretable as a succession of random operations. Later... &#91;in 1946, I &#93; described the idea to John von Neumann and we began to plan actual calculations.&quot;</p> </blockquote> <p>Because it was secret, von Neumann and Ulam&#39;s work required a codename. A colleague of von Neumann and Ulam, Nicholas Metropolis &#40;figure below&#41;, suggested using the name &quot;Monte Carlo&quot;, which refers to Casino Monte Carlo in Monaco, where Ulam&#39;s uncle &#40;Michał Ulam&#41; borrowed money from relatives to gamble.</p> <p><img src="/Bayesian-Julia/pages/images/nicholas_metropolis.png" alt="Nicholas Metropolis" /></p> <p><div class=text-center ><em>Nicholas Metropolis</em></div> <br/></p> <p>The <a href="https://en.wikipedia.org/wiki/Monte_Carlo_method#Applications">applications of the Monte Carlo method</a> are numerous: physical sciences, engineering, climate change, computational biology, computer graphics, applied statistics, artificial intelligence, search and rescue, finance and business and law. In the scope of these tutorials we will focus on applied statistics and specifically in the context of Bayesian inference: providing a random sample of the posterior distribution.</p> <h3 id=simulations ><a href="#simulations" class=header-anchor >Simulations</a></h3> <p>I will do some simulations to ilustrate MCMC algorithms and techniques. So, here&#39;s the initial setup:</p> <pre><code class=language-julia >using Plots, StatsPlots, Distributions, LaTeXStrings, Random
+
+Random.seed&#33;&#40;123&#41;;</code></pre> <p>Let&#39;s start with a toy problem of a multivariate normal distribution of \(X\) and \(Y\), where</p> <a id=mvnormal  class=anchor ></a>\[ \begin{bmatrix} X \\ Y \end{bmatrix} \sim \text{Multivariate Normal} \left( \begin{bmatrix} \mu_X \\ \mu_Y \end{bmatrix}, \mathbf{\Sigma} \right) \\ \mathbf{\Sigma} \sim \begin{pmatrix} \sigma^2_{X} & \sigma_{X}\sigma_{Y} \rho \\ \sigma_{X}\sigma_{Y} \rho & \sigma^2_{Y} \end{pmatrix} \] <p>If we assign \(\mu_X = \mu_Y = 0\) and \(\sigma_X = \sigma_Y = 1\) &#40;mean 0 and standard deviation 1 for both \(X\) and \(Y\)&#41;, we have the following formulation from <span class=eqref >(<a href="#mvnormal">6</a>)</span>:</p> <a id=stdmvnormal  class=anchor ></a>\[ \begin{bmatrix} X \\ Y \end{bmatrix} \sim \text{Multivariate Normal} \left( \begin{bmatrix} 0 \\ 0 \end{bmatrix}, \mathbf{\Sigma} \right), \\ \mathbf{\Sigma} \sim \begin{pmatrix} 1 & \rho \\ \rho & 1 \end{pmatrix} \] <p>All that remains is to assign a value for \(\rho\) in <span class=eqref >(<a href="#stdmvnormal">7</a>)</span> for the correlation between \(X\) and \(Y\). For our example we will use correlation of 0.8 &#40;\(\rho = 0.8\)&#41;:</p> <a id=sigma  class=anchor ></a>\[ \mathbf{\Sigma} \sim \begin{pmatrix} 1 & 0.8 \\ 0.8 & 1 \end{pmatrix} \] <pre><code class=language-julia >const N &#61; 100_000
+const μ &#61; &#91;0, 0&#93;
+const Σ &#61; &#91;1 0.8; 0.8 1&#93;
+
+const mvnormal &#61; MvNormal&#40;μ, Σ&#41;
+
+data &#61; rand&#40;mvnormal, N&#41;&#39;;</code></pre> <p>In the figure below it is possible to see a countour plot of the PDF of a multivariate normal distribution composed of two normal variables \(X\) and \(Y\), both with mean 0 and standard deviation 1. The correlation between \(X\) and \(Y\) is \(\rho = 0.8\):</p> <pre><code class=language-julia >x &#61; -3:0.01:3
+y &#61; -3:0.01:3
+dens_mvnormal &#61; &#91;pdf&#40;mvnormal, &#91;i, j&#93;&#41; for i in x, j in y&#93;
+contour&#40;x, y, dens_mvnormal, xlabel&#61;L&quot;X&quot;, ylabel&#61;L&quot;Y&quot;, fill&#61;true&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/countour_mvnormal.svg" alt=""> <div class=text-center ><em>Countour Plot of the PDF of a Multivariate Normal Distribution</em></div> <br/></p> <p>Also a surface plot can be seen below for you to get a 3-D intuition of what is going on:</p> <pre><code class=language-julia >surface&#40;x, y, dens_mvnormal, xlabel&#61;L&quot;X&quot;, ylabel&#61;L&quot;Y&quot;, zlabel&#61;&quot;PDF&quot;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/surface_mvnormal.svg" alt=""> <div class=text-center ><em>Surface Plot of the PDF of a Multivariate Normal Distribution</em></div> <br/></p>
+<h3 id=metropolis_and_metropolis-hastings ><a href="#metropolis_and_metropolis-hastings" class=header-anchor >Metropolis and Metropolis-Hastings</a></h3>
+<p>The first MCMC algorithm widely used to generate samples from Markov chain originated in physics in the 1950s &#40;in a very close relationship with the atomic bomb at the Manhattan project&#41; and is called <strong>Metropolis</strong> &#40;Metropolis, Rosenbluth, Rosenbluth, Teller, &amp; Teller, 1953&#41; in honor of the first author <a href="https://en.wikipedia.org/wiki/Nicholas_Metropolis">Nicholas Metropolis</a> &#40;figure above&#41;. In summary, the Metropolis algorithm is an adaptation of a random walk with an acceptance/rejection rule to converge to the target distribution.</p>
+<p>The Metropolis algorithm uses a <strong>proposal distribution</strong> \(J_t(\theta^*)\) &#40;\(J\) stands for <em>jumping distribution</em> and \(t\) indicates which state of the Markov chain we are in&#41; to define next values of the distribution \(P^*(\theta^* \mid \text{data})\). This distribution must be symmetrical:</p>
+<a id=symjump  class=anchor ></a>\[ J_t (\theta^* \mid \theta^{t-1}) = J_t(\theta^{t-1} \mid \theta^*)  \]
+<p>In the 1970s, a generalization of the Metropolis algorithm emerged that <strong>does not</strong> require that the proposal distributions be symmetric. The generalization was proposed by <a href="https://en.wikipedia.org/wiki/W._K._Hastings">Wilfred Keith Hastings</a> &#40;Hastings, 1970&#41; &#40;figure below&#41; and is called <strong>Metropolis-Hastings algorithm</strong>.</p>
+<p><img src="/Bayesian-Julia/pages/images/hastings.jpg" alt="Wilfred Hastings" /></p>
+<p><div class=text-center ><em>Wilfred Hastings</em></div> <br/></p>
+<h4 id=metropolis_algorithm ><a href="#metropolis_algorithm" class=header-anchor >Metropolis Algorithm</a></h4>
+<p>The essence of the algorithm is a random walk through the parameters&#39; sample space, where the probability of the Markov chain changing state is defined as:</p>
+<a id=proposal  class=anchor ></a>\[ P_{\text{change}} = \min \left( {\frac{P (\theta_{\text{proposed}})}{P (\theta_{\text{current}})}}, 1 \right)  \]
+<p>This means that the Markov chain will only change to a new state under two conditions:</p>
+<ol>
+<li><p>When the probability of the parameters proposed by the random walk \(P(\theta_{\text{proposed}})\) is <strong>greater</strong> than the probability of the parameters of the current state \(P(\theta_{\text{current}})\), we change with 100&#37; probability. Note that if \(P(\theta_{\text{proposed}}) > P(\theta_{\text{current}})\) then the function \(\min\) chooses the value 1 which means 100&#37;.</p>
+
+<li><p>When the probability of the parameters proposed by the random walk \(P(\theta_{\text{proposed}})\) is <strong>less</strong> than the probability of the parameters of the current state \(P(\theta_{\text{current}})\), we changed with a probability equal to the proportion of that difference. Note that if \(P(\theta_{\text{proposed}}) < P(\theta_{\text{current}})\) then the function \(\min\)<strong>does not</strong> choose the value 1, but the value \(\frac{P(\theta_{\text{proposed}})}{P(\theta_{\text{current}})}\) which equates the proportion of the probability of the proposed parameters to the probability of the parameters at the current state.</p>
+
+</ol>
+<p>Anyway, at each iteration of the Metropolis algorithm, even if the Markov chain changes state or not, we sample the parameter \(\theta\) anyway. That is, if the chain does not change to a new state, \(\theta\) will be sampled twice &#40;or more if the current is stationary in the same state&#41;.</p>
+<p>The Metropolis-Hastings algorithm can be described in the following way <sup id="fnref:metropolis"><a href="#fndef:metropolis" class=fnref >[3]</a></sup> &#40;\(\theta\) is the parameter, or set of parameters, of interest and \(y\) is the data&#41;:</p>
+<ol>
+<li><p>Define a starting point \(\theta^0\) of which \(p(\theta^0 \mid y) > 0\), or sample it from an initial distribution \(p_0(\theta)\). \(p_0(\theta)\) can be a normal distribution or a prior distribution of \(\theta\) &#40;\(p(\theta)\)&#41;.</p>
+
+<li><p>For \(t = 1, 2, \dots\):</p>
+<ul>
+<li><p>Sample a proposed \(\theta^*\) from a proposal distribution in time \(t\), \(J_t (\theta^* \mid \theta^{t-1})\).</p>
+
+<li><p>Calculate the ratio of probabilities:</p>
+<ul>
+<li><p><strong>Metropolis</strong>: \(r = \frac{p(\theta^*  \mid y)}{p(\theta^{t-1} \mid y)}\)</p>
+
+<li><p><strong>Metropolis-Hastings</strong>: \(r = \frac{\frac{p(\theta^* \mid y)}{J_t(\theta^* \mid \theta^{t-1})}}{\frac{p(\theta^{t-1} \mid y)}{J_t(\theta^{t-1} \mid \theta^*)}}\)</p>
+
+</ul>
+
+<li><p>Assign:</p>
+\(
+       \theta^t =
+       \begin{cases}
+       \theta^* & \text{with probability } \min (r, 1) \\
+       \theta^{t-1} & \text{otherwise}
+       \end{cases}
+       \)
+
+</ul>
+
+</ol>
+<h4 id=limitations_of_the_metropolis_algorithm ><a href="#limitations_of_the_metropolis_algorithm" class=header-anchor >Limitations of the Metropolis Algorithm</a></h4>
+<p>The limitations of the Metropolis-Hastings algorithm are mainly computational. With randomly generated proposals, it usually takes a large number of iterations to enter areas of higher &#40;more likely&#41; posterior densities. Even efficient Metropolis-Hastings algorithms sometimes accept less than 25&#37; of the proposals &#40;Roberts, Gelman &amp; Gilks, 1997&#41;. In lower-dimensional situations, the increased computational power can compensate for the lower efficiency to some extent. But in higher-dimensional and more complex modeling situations, bigger and faster computers alone are rarely enough to overcome the challenge.</p>
+<h4 id=metropolis_implementation ><a href="#metropolis_implementation" class=header-anchor >Metropolis – Implementation</a></h4>
+<p>In our toy example we will assume that \(J_t (\theta^* \mid \theta^{t-1})\) is symmetric, thus \(J_t(\theta^* \mid \theta^{t-1}) = J_t (\theta^{t-1} \mid \theta^*)\), so I&#39;ll just implement the Metropolis algorithm &#40;not the Metropolis-Hastings algorithm&#41;.</p>
+<p>Below I created a Metropolis sampler for our toy example. At the end it prints the acceptance rate of the proposals. Here I am using the same proposal distribution for both \(X\) and \(Y\): a uniform distribution parameterized with a <code>width</code> parameter:</p>
+\[
+X \sim \text{Uniform} \left( X - \frac{\text{width}}{2}, X + \frac{\text{width}}{2} \right) \\
+Y \sim \text{Uniform} \left( Y - \frac{\text{width}}{2}, Y + \frac{\text{width}}{2} \right)
+\]
+<p>I will use the already known <code>Distributions.jl</code> <code>MvNormal</code> from the plots above along with the <code>logpdf&#40;&#41;</code> function to calculate the PDF of the proposed and current \(\theta\)s. It is easier to work with probability logs than with the absolute values<sup id="fnref:numerical"><a href="#fndef:numerical" class=fnref >[4]</a></sup>. Mathematically we will compute:</p>
+\[
+\begin{aligned}
+r &= \frac{
+\operatorname{PDF}\left(
+\text{Multivariate Normal} \left(
+\begin{bmatrix}
+x_{\text{proposed}} \\
+y_{\text{proposed}}
+\end{bmatrix}
+\right)
+\Bigg|
+\text{Multivariate Normal} \left(
+\begin{bmatrix}
+\mu_X \\
+\mu_Y
+\end{bmatrix}, \mathbf{\Sigma}
+\right)
+\right)}
+{
+\operatorname{PDF}\left(
+\text{Multivariate Normal} \left(
+\begin{bmatrix}
+x_{\text{current}} \\
+y_{\text{current}}
+\end{bmatrix}
+\right)
+\Bigg|
+\text{Multivariate Normal} \left(
+\begin{bmatrix}
+\mu_X \\
+\mu_Y
+\end{bmatrix}, \mathbf{\Sigma}
+\right)
+\right)}\\
+&=\frac{\operatorname{PDF}_{\text{proposed}}}{\operatorname{PDF}_{\text{current}}}\\
+&= \exp\Big(
+\log\left(\operatorname{PDF}_{\text{proposed}}\right)
+-
+\log\left(\operatorname{PDF}_{\text{current}}\right)
+\Big)
+\end{aligned}
+\]
+<p>Here is a simple implementation in Julia:</p>
+<pre><code class=language-julia >function metropolis&#40;S::Int64, width::Float64, ρ::Float64;
+                    μ_x::Float64&#61;0.0, μ_y::Float64&#61;0.0,
+                    σ_x::Float64&#61;1.0, σ_y::Float64&#61;1.0,
+                    start_x&#61;-2.5, start_y&#61;2.5,
+                    seed&#61;123&#41;
+    rgn &#61; MersenneTwister&#40;seed&#41;
+    binormal &#61; MvNormal&#40;&#91;μ_x; μ_y&#93;, &#91;σ_x ρ; ρ σ_y&#93;&#41;
+    draws &#61; Matrix&#123;Float64&#125;&#40;undef, S, 2&#41;
+    accepted &#61; 0::Int64;
+    x &#61; start_x; y &#61; start_y
+    @inbounds draws&#91;1, :&#93; &#61; &#91;x y&#93;
+    for s in 2:S
+        x_ &#61; rand&#40;rgn, Uniform&#40;x - width, x &#43; width&#41;&#41;
+        y_ &#61; rand&#40;rgn, Uniform&#40;y - width, y &#43; width&#41;&#41;
+        r &#61; exp&#40;logpdf&#40;binormal, &#91;x_, y_&#93;&#41; - logpdf&#40;binormal, &#91;x, y&#93;&#41;&#41;
+
+        if r &gt; rand&#40;rgn, Uniform&#40;&#41;&#41;
+            x &#61; x_
+            y &#61; y_
+            accepted &#43;&#61; 1
+        end
+        @inbounds draws&#91;s, :&#93; &#61; &#91;x y&#93;
+    end
+    println&#40;&quot;Acceptance rate is: &#36;&#40;accepted / S&#41;&quot;&#41;
+    return draws
+end</code></pre><pre><code class="plaintext code-output">metropolis (generic function with 1 method)</code></pre>
+<p>Now let&#39;s run our <code>metropolis&#40;&#41;</code> algorithm for the bivariate normal case with <code>S &#61; 10_000</code>, <code>width &#61; 2.75</code> and <code>ρ &#61; 0.8</code>:</p>
+<pre><code class=language-julia >const S &#61; 10_000
+const width &#61; 2.75
+const ρ &#61; 0.8
+
+X_met &#61; metropolis&#40;S, width, ρ&#41;;</code></pre><pre><code class="plaintext code-output">Acceptance rate is: 0.2116
+</code></pre>
+<p>Take a quick peek into <code>X_met</code>, we&#39;ll see it&#39;s a matrix of \(X\) and \(Y\) values as columns and the time \(t\) as rows:</p>
+<pre><code class=language-julia >X_met&#91;1:10, :&#93;</code></pre><pre><code class="plaintext code-output">10×2 Matrix{Float64}:
+ -2.5        2.5
+ -2.5        2.5
+ -3.07501    1.47284
+ -2.60189   -0.990426
+ -2.60189   -0.990426
+ -0.592119  -0.34422
+ -0.592119  -0.34422
+ -0.592119  -0.34422
+ -0.592119  -0.34422
+ -0.592119  -0.34422</code></pre>
+<p>Also note that the acceptance of the proposals was 21&#37;, the expected for Metropolis algorithms &#40;around 20-25&#37;&#41; &#40;Roberts et. al, 1997&#41;.</p>
+<p>We can construct <code>Chains</code> object using <code>MCMCChains.jl</code><sup id="fnref:mcmcchains"><a href="#fndef:mcmcchains" class=fnref >[5]</a></sup> by passing a matrix along with the parameters names as symbols inside the <code>Chains&#40;&#41;</code> constructor:</p>
+<pre><code class=language-julia >using MCMCChains
+
+chain_met &#61; Chains&#40;X_met, &#91;:X, :Y&#93;&#41;;</code></pre>
+<p>Then we can get summary statistics regarding our Markov chain derived from the Metropolis algorithm:</p>
+<pre><code class=language-julia >summarystats&#40;chain_met&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse         ess      rhat
+      Symbol   Float64   Float64    Float64   Float64     Float64   Float64
+
+           X   -0.0314    0.9984     0.0100    0.0293   1018.0596    0.9999
+           Y   -0.0334    0.9784     0.0098    0.0292   1027.7392    0.9999
+</code></pre>
+<p>Both of <code>X</code> and <code>Y</code> have mean close to 0 and standard deviation close to 1 &#40;which are the theoretical values&#41;. Take notice of the <code>ess</code> &#40;effective sample size - ESS&#41; is approximate 1,000. So let&#39;s calculate the efficiency of our Metropolis algorithm by dividing the ESS by the number of sampling iterations that we&#39;ve performed:</p>
+<a id=ess  class=anchor ></a>\[ \text{efficiency} = \frac{\text{ESS}}{\text{iterations}}  \]
+<pre><code class=language-julia >mean&#40;summarystats&#40;chain_met&#41;&#91;:, :ess&#93;&#41; / S</code></pre><pre><code class="plaintext code-output">0.10228993861619406</code></pre>
+<p>Our Metropolis algorithm has around 10.2&#37; efficiency. Which, in my honest opinion, <em>sucks</em>...&#40;😂&#41;</p>
+<h5 id=metropolis_visual_intuition ><a href="#metropolis_visual_intuition" class=header-anchor >Metropolis – Visual Intuition</a></h5>
+<p>I believe that a good visual intuition, even if you have not understood any mathematical formula, is the key for you to start a fruitful learning journey. So I made some animations&#33;</p>
+<p>The animation in figure below shows the first 100 simulations of the Metropolis algorithm used to generate <code>X_met</code>. Note that in several iterations the proposal is rejected and the algorithm samples the parameters \(\theta_1\) and \(\theta_2\) from the previous state &#40;which becomes the current one, since the proposal is refused&#41;. The blue-filled ellipsis represents the 90&#37; HPD of our toy example&#39;s bivariate normal distribution.</p>
+<p>Note: <code>HPD</code> stands for <em>Highest Probability Density</em> &#40;which in our case the posterior&#39;s 90&#37; probability range&#41;.</p>
+<pre><code class=language-julia >plt &#61; covellipse&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.3,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;,
+    xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+met_anim &#61; @animate for i in 1:100
+    scatter&#33;&#40;plt, &#40;X_met&#91;i, 1&#93;, X_met&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;:red, ma&#61;0.5&#41;
+    plot&#33;&#40;X_met&#91;i:i &#43; 1, 1&#93;, X_met&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;:green, la&#61;0.5, label&#61;false&#41;
+end</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/met_anim.gif" alt=""> <div class=text-center ><em>Animation of the First 100 Samples Generated from the Metropolis Algorithm</em></div> <br/></p>
+<p>Now let&#39;s take a look how the first 1,000 simulations were, excluding 1,000 initial iterations as warm-up.</p>
+<pre><code class=language-julia >const warmup &#61; 1_000
+
+scatter&#40;&#40;X_met&#91;warmup:warmup &#43; 1_000, 1&#93;, X_met&#91;warmup:warmup &#43; 1_000, 2&#93;&#41;,
+         label&#61;false, mc&#61;:red, ma&#61;0.3,
+         xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+         xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+covellipse&#33;&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.5,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/met_first1000.svg" alt=""> <div class=text-center ><em>First 1,000 Samples Generated from the Metropolis Algorithm after warm-up</em></div> <br/></p>
+<p>And, finally, lets take a look in the all 9,000 samples generated after the warm-up of 1,000 iterations.</p>
+<pre><code class=language-julia >scatter&#40;&#40;X_met&#91;warmup:end, 1&#93;, X_met&#91;warmup:end, 2&#93;&#41;,
+         label&#61;false, mc&#61;:red, ma&#61;0.3,
+         xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+         xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+covellipse&#33;&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.5,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/met_all.svg" alt=""> <div class=text-center ><em>All 9,000 Samples Generated from the Metropolis Algorithm after warm-up</em></div> <br/></p>
+<h3 id=gibbs ><a href="#gibbs" class=header-anchor >Gibbs</a></h3>
+<p>To circumvent the problem of low acceptance rate of the Metropolis &#40;and Metropolis-Hastings&#41; algorithm, the Gibbs algorithm was developed, which does not have an acceptance/rejection rule for new proposals to change the state of the Markov chain. <strong>All proposals are accepted</strong>.</p>
+<p>Gibbs&#39; algorithm had an original idea conceived by physicist Josiah Willard Gibbs &#40;figure below&#41;, in reference to an analogy between a sampling algorithm and statistical physics &#40;a branch of physics which is based on statistical mechanics&#41;. The algorithm was described by brothers Stuart and Donald Geman in 1984 &#40;Geman &amp; Geman, 1984&#41;, about eight decades after Gibbs&#39;s death.</p>
+<p><img src="/Bayesian-Julia/pages/images/josiah_gibbs.jpg" alt="Josiah Gibbs" /></p>
+<p><div class=text-center ><em>Josiah Gibbs</em></div> <br/></p>
+<p>The Gibbs algorithm is very useful in multidimensional sample spaces &#40;in which there are more than 2 parameters to be sampled for the posterior probability&#41;. It is also known as <strong>alternating conditional sampling</strong>, since we always sample a parameter <strong>conditioned</strong> to the probability of the other parameters.</p>
+<p>The Gibbs algorithm can be seen as a <strong>special case</strong> of the Metropolis-Hastings algorithm because all proposals are accepted &#40;Gelman, 1992&#41;.</p>
+<h4 id=gibbs_algorithm ><a href="#gibbs_algorithm" class=header-anchor >Gibbs Algorithm</a></h4>
+<p>The essence of Gibbs&#39; algorithm is an iterative sampling of parameters conditioned to other parameters \(P(\theta_1 \mid \theta_2, \dots \theta_n)\).</p>
+<p>Gibbs&#39;s algorithm can be described in the following way<sup id="fnref:gibbs"><a href="#fndef:gibbs" class=fnref >[6]</a></sup> &#40;\(\theta\) is the parameter, or set of parameters, of interest and \(y\) is the data&#41;:</p>
+<ol>
+<li><p>Define \(P(\theta_1), P(\theta_2), \dots, P(\theta_n)\): the prior probability of each of the \(\theta_n\) parameters.</p>
+
+<li><p>Sample a starting point \(\theta^0_1, \theta^0_2, \dots, \theta^0_n\). We usually sample from a normal distribution or from a distribution specified as the prior distribution of \(\theta_n\).</p>
+
+<li><p>For \(t = 1, 2, \dots\):</p>
+\(\begin{aligned}
+    \theta^t_1 &\sim p(\theta_1 \mid \theta^0_2, \dots, \theta^0_n) \\
+    \theta^t_2 &\sim p(\theta_2 \mid \theta^{t-1}_1, \dots, \theta^0_n) \\
+    &\vdots \\
+    \theta^t_n &\sim p(\theta_n \mid \theta^{t-1}_1, \dots, \theta^{t-1}_{n-1})
+    \end{aligned}\)
+
+</ol>
+<h4 id=limitations_of_the_gibbs_algorithm ><a href="#limitations_of_the_gibbs_algorithm" class=header-anchor >Limitations of the Gibbs Algorithm</a></h4>
+<p>The main limitation of the Gibbs algorithm is with regard to alternative conditional sampling.</p>
+<p>If we compare with the Metropolis algorithm &#40;and consequently Metropolis-Hastings&#41; we have random proposals from a proposal distribution in which we sample each parameter unconditionally to other parameters. In order for the proposals to take us to the posterior probability&#39;s correct locations to sample, we have an acceptance/rejection rule for these proposals, otherwise the samples of the Metropolis algorithm would not approach the target distribution of interest. The state changes of the Markov chain are then carried out multidimensionally <sup id="fnref:gibbs2"><a href="#fndef:gibbs2" class=fnref >[7]</a></sup>. As you saw in the Metropolis&#39; figures, in a 2-D space &#40;as is our example&#39;s bivariate normal distribution&#41;, when there is a change of state in the Markov chain, the new proposal location considers both \(\theta_1\) and \(\theta_2\), causing <strong>diagonal</strong> movement in space 2-D sample. In other words, the proposal is done regarding all dimensions of the parameter space.</p>
+<p>In the case of the Gibbs algorithm, in our toy example, this movement occurs only in a single parameter, <em>i.e</em> single dimension, as we sample sequentially and conditionally to other parameters. This causes <strong>horizontal</strong> movements &#40;in the case of \(\theta_1\)&#41; and <strong>vertical movements</strong> &#40;in the case of \(\theta_2\)&#41;, but never diagonal movements like the ones we saw in the Metropolis algorithm.</p>
+<h4 id=gibbs_implementation ><a href="#gibbs_implementation" class=header-anchor >Gibbs – Implementation</a></h4>
+<p>Here are some new things compared to the Metropolis algorithm implementation. First to conditionally sample the parameters \(P(\theta_1 \mid \theta_2)\) and \(P(\theta_2 \mid \theta_1)\), we need to create two new variables <code>β</code> and <code>λ</code>. These variables represent the correlation between \(X\) and \(Y\) &#40;\(\theta_1\) and \(\theta_2\) respectively&#41; scaled by the ratio of the variance of \(X\) and \(Y\). And then we use these variables in the sampling of \(\theta_1\) and \(\theta_2\):</p>
+\[
+\begin{aligned}
+\beta &= \rho \cdot \frac{\sigma_Y}{\sigma_X} = \rho \\
+\lambda &= \rho \cdot \frac{\sigma_X}{\sigma_Y} = \rho \\
+\sigma_{YX} &= 1 - \rho^2\\
+\sigma_{XY} &= 1 - \rho^2\\
+\theta_1 &\sim \text{Normal} \bigg( \mu_X + \lambda \cdot (y^* - \mu_Y), \sigma_{XY} \bigg) \\
+\theta_2 &\sim \text{Normal} \bigg( \mu_y + \beta \cdot (x^* - \mu_X), \sigma_{YX} \bigg)
+\end{aligned}
+\]
+<pre><code class=language-julia >function gibbs&#40;S::Int64, ρ::Float64;
+               μ_x::Float64&#61;0.0, μ_y::Float64&#61;0.0,
+               σ_x::Float64&#61;1.0, σ_y::Float64&#61;1.0,
+               start_x&#61;-2.5, start_y&#61;2.5,
+               seed&#61;123&#41;
+    rgn &#61; MersenneTwister&#40;seed&#41;
+    binormal &#61; MvNormal&#40;&#91;μ_x; μ_y&#93;, &#91;σ_x ρ; ρ σ_y&#93;&#41;
+    draws &#61; Matrix&#123;Float64&#125;&#40;undef, S, 2&#41;
+    x &#61; start_x; y &#61; start_y
+    β &#61; ρ * σ_y / σ_x
+    λ &#61; ρ * σ_x / σ_y
+    sqrt1mrho2 &#61; sqrt&#40;1 - ρ^2&#41;
+    σ_YX &#61; σ_y * sqrt1mrho2
+    σ_XY &#61; σ_x * sqrt1mrho2
+    @inbounds draws&#91;1, :&#93; &#61; &#91;x y&#93;
+    for s in 2:S
+        if s &#37; 2 &#61;&#61; 0
+            y &#61; rand&#40;rgn, Normal&#40;μ_y &#43; β * &#40;x - μ_x&#41;, σ_YX&#41;&#41;
+        else
+            x &#61; rand&#40;rgn, Normal&#40;μ_x &#43; λ * &#40;y - μ_y&#41;, σ_XY&#41;&#41;
+        end
+        @inbounds draws&#91;s, :&#93; &#61; &#91;x y&#93;
+    end
+    return draws
+end</code></pre><pre><code class="plaintext code-output">gibbs (generic function with 1 method)</code></pre>
+<p>Generally a Gibbs sampler is not implemented in this way. Here I coded the Gibbs algorithm so that it samples a parameter for each iteration. To be more computationally efficient we would sample all parameters are on each iteration. I did it on purpose because I want to show in the animations the real trajectory of the Gibbs sampler in the sample space &#40;vertical and horizontal, not diagonal&#41;. So to remedy this I will provide <code>gibbs&#40;&#41;</code> double the ammount of <code>S</code> &#40;20,000 in total&#41;. Also take notice that we are now proposing new parameters&#39; values conditioned on other parameters, so there is not an acceptance/rejection rule here.</p>
+<pre><code class=language-julia >X_gibbs &#61; gibbs&#40;S * 2, ρ&#41;;</code></pre>
+<p>As before lets&#39; take a quick peek into <code>X_gibbs</code>, we&#39;ll see it&#39;s a matrix of \(X\) and \(Y\) values as columns and the time \(t\) as rows:</p>
+<pre><code class=language-julia >X_gibbs&#91;1:10, :&#93;</code></pre><pre><code class="plaintext code-output">10×2 Matrix{Float64}:
+ -2.5         2.5
+ -2.5        -1.28584
+  0.200236   -1.28584
+  0.200236    0.84578
+  0.952273    0.84578
+  0.952273    0.523811
+  0.0202213   0.523811
+  0.0202213   0.604758
+  0.438516    0.604758
+  0.438516    0.515102</code></pre>
+<p>Again, we construct a <code>Chains</code> object by passing a matrix along with the parameters names as symbols inside the <code>Chains&#40;&#41;</code> constructor:</p>
+<pre><code class=language-julia >chain_gibbs &#61; Chains&#40;X_gibbs, &#91;:X, :Y&#93;&#41;;</code></pre>
+<p>Then we can get summary statistics regarding our Markov chain derived from the Gibbs algorithm:</p>
+<pre><code class=language-julia >summarystats&#40;chain_gibbs&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse         ess      rhat
+      Symbol   Float64   Float64    Float64   Float64     Float64   Float64
+
+           X    0.0161    1.0090     0.0071    0.0233   2152.9179    1.0005
+           Y    0.0097    1.0071     0.0071    0.0233   2114.5140    1.0003
+</code></pre>
+<p>Both of <code>X</code> and <code>Y</code> have mean close to 0 and standard deviation close to 1 &#40;which are the theoretical values&#41;. Take notice of the <code>ess</code> &#40;effective sample size - ESS&#41; that is around 2,100. Since we used <code>S * 2</code> as the number of samples, in order for we to compare with Metropolis, we would need to divide the ESS by 2. So our ESS is between 1,000, which is similar to Metropolis&#39; ESS. Now let&#39;s calculate the efficiency of our Gibbs algorithm by dividing the ESS by the number of sampling iterations that we&#39;ve performed also accounting for the <code>S * 2</code>:</p>
+<pre><code class=language-julia >&#40;mean&#40;summarystats&#40;chain_gibbs&#41;&#91;:, :ess&#93;&#41; / 2&#41; / S</code></pre><pre><code class="plaintext code-output">0.10668579951961296</code></pre>
+<p>Our Gibbs algorithm has around 10.6&#37; efficiency. Which, in my honest opinion, despite the small improvement still <em>sucks</em>...&#40;😂&#41;</p>
+<h5 id=gibbs_visual_intuition ><a href="#gibbs_visual_intuition" class=header-anchor >Gibbs – Visual Intuition</a></h5>
+<p>Oh yes, we have animations for Gibbs also&#33;</p>
+<p>The animation in figure below shows the first 100 simulations of the Gibbs algorithm used to generate <code>X_gibbs</code>. Note that all proposals are accepted now, so the at each iteration we sample new parameters values. The blue-filled ellipsis represents the 90&#37; HPD of our toy example&#39;s bivariate normal distribution.</p>
+<pre><code class=language-julia >plt &#61; covellipse&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.3,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;,
+    xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+gibbs_anim &#61; @animate for i in 1:200
+    scatter&#33;&#40;plt, &#40;X_gibbs&#91;i, 1&#93;, X_gibbs&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;:red, ma&#61;0.5&#41;
+    plot&#33;&#40;X_gibbs&#91;i:i &#43; 1, 1&#93;, X_gibbs&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;:green, la&#61;0.5, label&#61;false&#41;
+end</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/gibbs_anim.gif" alt=""> <div class=text-center ><em>Animation of the First 100 Samples Generated from the Gibbs Algorithm</em></div> <br/></p>
+<p>Now let&#39;s take a look how the first 1,000 simulations were, excluding 1,000 initial iterations as warm-up.</p>
+<pre><code class=language-julia >scatter&#40;&#40;X_gibbs&#91;2 * warmup:2 * warmup &#43; 1_000, 1&#93;, X_gibbs&#91;2 * warmup:2 * warmup &#43; 1_000, 2&#93;&#41;,
+         label&#61;false, mc&#61;:red, ma&#61;0.3,
+         xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+         xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+covellipse&#33;&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.5,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/gibbs_first1000.svg" alt=""> <div class=text-center ><em>First 1,000 Samples Generated from the Gibbs Algorithm after warm-up</em></div> <br/></p>
+<p>And, finally, lets take a look in the all 9,000 samples generated after the warm-up of 1,000 iterations.</p>
+<pre><code class=language-julia >scatter&#40;&#40;X_gibbs&#91;2 * warmup:end, 1&#93;, X_gibbs&#91;2 * warmup:end, 2&#93;&#41;,
+         label&#61;false, mc&#61;:red, ma&#61;0.3,
+         xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+         xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+covellipse&#33;&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.5,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/gibbs_all.svg" alt=""> <div class=text-center ><em>All 9,000 Samples Generated from the Gibbs Algorithm after warm-up</em></div> <br/></p>
+<h3 id=what_happens_when_we_run_markov_chains_in_parallel ><a href="#what_happens_when_we_run_markov_chains_in_parallel" class=header-anchor >What happens when we run Markov chains in parallel?</a></h3>
+<p>Since the Markov chains are <strong>independent</strong>, we can run them in <strong>parallel</strong>. The key to this is <strong>defining different starting points for each Markov chain</strong> &#40;if you use a sample of a previous distribution of parameters as a starting point this is not a problem&#41;. We will use the same toy example of a bivariate normal distribution \(X\) and \(Y\) that we used in the previous examples, but now with <strong>4 Markov chains in parallel with different starting points</strong><sup id="fnref:markovparallel"><a href="#fndef:markovparallel" class=fnref >[8]</a></sup>.</p>
+<p>First, let&#39;s defined 4 different pairs of starting points using a nice Cartesian product from Julia&#39;s <code>Base.Iterators</code>:</p>
+<pre><code class=language-julia >const starts &#61; Iterators.product&#40;&#40;-2.5, 2.5&#41;, &#40;2.5, -2.5&#41;&#41; |&gt; collect</code></pre><pre><code class="plaintext code-output">2×2 Matrix{Tuple{Float64, Float64}}:
+ (-2.5, 2.5)  (-2.5, -2.5)
+ (2.5, 2.5)   (2.5, -2.5)</code></pre>
+<p>Also, I will restrict this simulation to 100 samples:</p>
+<pre><code class=language-julia >const S_parallel &#61; 100;</code></pre>
+<p>Additionally, note that we are using different <code>seed</code>s:</p>
+<pre><code class=language-julia >X_met_1 &#61; metropolis&#40;S_parallel, width, ρ, seed&#61;124, start_x&#61;first&#40;starts&#91;1&#93;&#41;, start_y&#61;last&#40;starts&#91;1&#93;&#41;&#41;;
+X_met_2 &#61; metropolis&#40;S_parallel, width, ρ, seed&#61;125, start_x&#61;first&#40;starts&#91;2&#93;&#41;, start_y&#61;last&#40;starts&#91;2&#93;&#41;&#41;;
+X_met_3 &#61; metropolis&#40;S_parallel, width, ρ, seed&#61;126, start_x&#61;first&#40;starts&#91;3&#93;&#41;, start_y&#61;last&#40;starts&#91;3&#93;&#41;&#41;;
+X_met_4 &#61; metropolis&#40;S_parallel, width, ρ, seed&#61;127, start_x&#61;first&#40;starts&#91;4&#93;&#41;, start_y&#61;last&#40;starts&#91;4&#93;&#41;&#41;;</code></pre><pre><code class="plaintext code-output">Acceptance rate is: 0.24
+Acceptance rate is: 0.18
+Acceptance rate is: 0.18
+Acceptance rate is: 0.23
+</code></pre>
+<p>There have been some significant changes in the approval rate for Metropolis proposals. All were around 13&#37;-24&#37;, this is due to the low number of samples &#40;only 100 for each Markov chain&#41;, if the samples were larger we would see these values converge to close to 20&#37; according to the previous example of 10,000 samples with a single stream &#40;Roberts et. al, 1997&#41;.</p>
+<p>Now let&#39;s take a look on how those 4 Metropolis Markov chains sample the parameter space starting from different positions. Each chain will have its own marker and path color, so that we can see their different behavior:</p>
+<pre><code class=language-julia >plt &#61; covellipse&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.3,
+    c&#61;:grey,
+    label&#61;&quot;90&#37; HPD&quot;,
+    xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+const logocolors &#61; Colors.JULIA_LOGO_COLORS;
+
+parallel_met &#61; Animation&#40;&#41;
+for i in 1:99
+    scatter&#33;&#40;plt, &#40;X_met_1&#91;i, 1&#93;, X_met_1&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;logocolors.blue, ma&#61;0.5&#41;
+    plot&#33;&#40;X_met_1&#91;i:i &#43; 1, 1&#93;, X_met_1&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;logocolors.blue, la&#61;0.5, label&#61;false&#41;
+    scatter&#33;&#40;plt, &#40;X_met_2&#91;i, 1&#93;, X_met_2&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;logocolors.red, ma&#61;0.5&#41;
+    plot&#33;&#40;X_met_2&#91;i:i &#43; 1, 1&#93;, X_met_2&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;logocolors.red, la&#61;0.5, label&#61;false&#41;
+    scatter&#33;&#40;plt, &#40;X_met_3&#91;i, 1&#93;, X_met_3&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;logocolors.green, ma&#61;0.5&#41;
+    plot&#33;&#40;X_met_3&#91;i:i &#43; 1, 1&#93;, X_met_3&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;logocolors.green, la&#61;0.5, label&#61;false&#41;
+    scatter&#33;&#40;plt, &#40;X_met_4&#91;i, 1&#93;, X_met_4&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;logocolors.purple, ma&#61;0.5&#41;
+    plot&#33;&#40;X_met_4&#91;i:i &#43; 1, 1&#93;, X_met_4&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;logocolors.purple, la&#61;0.5, label&#61;false&#41;
+    frame&#40;parallel_met&#41;
+end</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/parallel_met.gif" alt=""> <div class=text-center ><em>Animation of 4 Parallel Metropolis Markov Chains</em></div> <br/></p>
+<p>Now we&#39;ll do the the same for Gibbs, taking care to provide also different <code>seed</code>s and starting points:</p>
+<pre><code class=language-julia >X_gibbs_1 &#61; gibbs&#40;S_parallel * 2, ρ, seed&#61;124, start_x&#61;first&#40;starts&#91;1&#93;&#41;, start_y&#61;last&#40;starts&#91;1&#93;&#41;&#41;;
+X_gibbs_2 &#61; gibbs&#40;S_parallel * 2, ρ, seed&#61;125, start_x&#61;first&#40;starts&#91;2&#93;&#41;, start_y&#61;last&#40;starts&#91;2&#93;&#41;&#41;;
+X_gibbs_3 &#61; gibbs&#40;S_parallel * 2, ρ, seed&#61;126, start_x&#61;first&#40;starts&#91;3&#93;&#41;, start_y&#61;last&#40;starts&#91;3&#93;&#41;&#41;;
+X_gibbs_4 &#61; gibbs&#40;S_parallel * 2, ρ, seed&#61;127, start_x&#61;first&#40;starts&#91;4&#93;&#41;, start_y&#61;last&#40;starts&#91;4&#93;&#41;&#41;;</code></pre>
+<p>Now let&#39;s take a look on how those 4 Gibbs Markov chains sample the parameter space starting from different positions. Each chain will have its own marker and path color, so that we can see their different behavior:</p>
+<pre><code class=language-julia >plt &#61; covellipse&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.3,
+    c&#61;:grey,
+    label&#61;&quot;90&#37; HPD&quot;,
+    xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+parallel_gibbs &#61; Animation&#40;&#41;
+for i in 1:199
+    scatter&#33;&#40;plt, &#40;X_gibbs_1&#91;i, 1&#93;, X_gibbs_1&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;logocolors.blue, ma&#61;0.5&#41;
+    plot&#33;&#40;X_gibbs_1&#91;i:i &#43; 1, 1&#93;, X_gibbs_1&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;logocolors.blue, la&#61;0.5, label&#61;false&#41;
+    scatter&#33;&#40;plt, &#40;X_gibbs_2&#91;i, 1&#93;, X_gibbs_2&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;logocolors.red, ma&#61;0.5&#41;
+    plot&#33;&#40;X_gibbs_2&#91;i:i &#43; 1, 1&#93;, X_gibbs_2&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;logocolors.red, la&#61;0.5, label&#61;false&#41;
+    scatter&#33;&#40;plt, &#40;X_gibbs_3&#91;i, 1&#93;, X_gibbs_3&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;logocolors.green, ma&#61;0.5&#41;
+    plot&#33;&#40;X_gibbs_3&#91;i:i &#43; 1, 1&#93;, X_gibbs_3&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;logocolors.green, la&#61;0.5, label&#61;false&#41;
+    scatter&#33;&#40;plt, &#40;X_gibbs_4&#91;i, 1&#93;, X_gibbs_4&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;logocolors.purple, ma&#61;0.5&#41;
+    plot&#33;&#40;X_gibbs_4&#91;i:i &#43; 1, 1&#93;, X_gibbs_4&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;logocolors.purple, la&#61;0.5, label&#61;false&#41;
+    frame&#40;parallel_gibbs&#41;
+end</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/parallel_gibbs.gif" alt=""> <div class=text-center ><em>Animation of 4 Parallel Gibbs Markov Chains</em></div> <br/></p>
+<h2 id=hamiltonian_monte_carlo_hmc ><a href="#hamiltonian_monte_carlo_hmc" class=header-anchor >Hamiltonian Monte Carlo – HMC</a></h2>
+<p>The problems of low acceptance rates of proposals for Metropolis techniques and the low performance of the Gibbs algorithm in multidimensional problems &#40;in which the posterior&#39;s topology is quite complex&#41; led to the emergence of a new MCMC technique using Hamiltonian dynamics &#40;in honor of the Irish physicist <a href="https://en.wikipedia.org/wiki/William_Rowan_Hamilton"> William Rowan Hamilton</a> &#40;1805-1865&#41; &#40;figure below&#41;. The name for this technique is <em>Hamiltonian Monte Carlo</em> – HMC.</p>
+<p><img src="/Bayesian-Julia/pages/images/hamilton.png" alt="William Rowan Hamilton" /></p>
+<p><div class=text-center ><em>William Rowan Hamilton</em></div> <br/></p>
+<p>The HMC is an adaptation of the Metropolis technique and employs a guided scheme for generating new proposals: this improves the proposal&#39;s acceptance rate and, consequently, efficiency. More specifically, the HMC uses the posterior log gradient to direct the Markov chain to regions of higher posterior density, where most samples are collected. As a result, a Markov chain with the well-adjusted HMC algorithm will accept proposals at a much higher rate than the traditional Metropolis algorithm &#40;Roberts et. al, 1997&#41;.</p>
+<p>HMC was first described in the physics literature &#40;Duane, Kennedy, Pendleton &amp; Roweth, 1987&#41; &#40;which they called the <em>&quot;Hybrid&quot; Monte Carlo</em> – HMC&#41;. Soon after, HMC was applied to statistical problems by Neal &#40;1994&#41; &#40;which he called <em>Hamiltonean Monte Carlo</em> – HMC&#41;. For an in-depth discussion regarding HMC &#40;which is not the focus of this tutorial&#41;, I recommend Neal &#40;2011&#41; and Betancourt &#40;2017&#41;.</p>
+<p>HMC uses Hamiltonian dynamics applied to particles exploring the topology of a posterior density. In some simulations Metropolis has an acceptance rate of approximately 23&#37;, while HMC 65&#37; &#40;Gelman et al., 2013b&#41;. In addition to better exploring the posterior&#39;s topology and tolerating complex topologies, HMC is much more efficient than Metropolis and does not suffer from the Gibbs&#39; parameter correlation problem.</p>
+<p>For each component \(\theta_j\), the HMC adds a momentum variable \(\phi_j\). The subsequent density \(P(\theta \mid y)\) is increased by an independent distribution \(P(\phi)\) of the momentum, thus defining a joint distribution:</p>
+<a id=hmcjoint  class=anchor ></a>\[ P(\theta, \phi \mid y) = P(\phi) \cdot P(\theta \mid y)  \]
+<p>HMC uses a proposal distribution that changes depending on the current state in the Markov chain. The HMC discovers the direction in which the posterior distribution increases, called <em>gradient</em>, and distorts the distribution of proposals towards the <em>gradient</em>. In the Metropolis algorithm, the distribution of the proposals would be a &#40;usually&#41; Normal distribution centered on the current position, so that jumps above or below the current position would have the same probability of being proposed. But the HMC generates proposals quite differently.</p>
+<p>You can imagine that for high-dimensional posterior densities that have <em>narrow diagonal valleys</em> and even <em>curved valleys</em>, the HMC dynamics will find proposed positions that are much more <strong>promising</strong> than a naive symmetric proposal distribution, and more promising than the Gibbs sampling, which can get stuck in <em>diagonal walls</em>.</p>
+<p>The probability of the Markov chain changing state in the HMC algorithm is defined as:</p>
+<a id=hmcproposal  class=anchor ></a>\[
+P_{\text{change}} = \min\left({\frac{P(\theta_{\text{proposed}}) \cdot
+P(\phi_{\text{proposed}})}{P(\theta_{\text{current}})\cdot P(\phi_{\text{current}})}}, 1\right) 
+\]
+<p>where \(\phi\) is the momentum.</p>
+<h3 id=momentum_distribution_pphi ><a href="#momentum_distribution_pphi" class=header-anchor >Momentum Distribution – \(P(\phi)\)</a></h3>
+<p>We normally give \(\phi\) a normal multivariate distribution with a mean of 0 and a covariance of \(\mathbf{M}\), a &quot;mass matrix&quot;. To keep things a little bit simpler, we use a diagonal mass matrix \(\mathbf{M}\). This makes the components of \(\phi\) independent with \(\phi_j \sim \text{Normal}(0, M_{jj})\)</p>
+<h3 id=hmc_algorithm ><a href="#hmc_algorithm" class=header-anchor >HMC Algorithm</a></h3>
+<p>The HMC algorithm is very similar to the Metropolis algorithm but with the inclusion of the momentum \(\phi\) as a way of quantifying the gradient of the posterior distribution:</p>
+<ol>
+<li><p>Sample \(\phi\) from a \(\text{Normal}(0, \mathbf{M})\)</p>
+
+<li><p>Simultaneously sample \(\theta\) and \(\phi\) with \(L\)<em>leapfrog steps</em> each scaled by a \(\epsilon\) factor. In a <em>leapfrog step</em>, both \(\theta\) and \(\phi\) are changed, in relation to each other. Repeat the following steps \(L\) times:</p>
+
+</ol>
+<p>2.1. Use the gradient of log posterior of \(\theta\) to produce a <em>half-step</em> of \(\phi\):</p>
+\[\phi \leftarrow \phi + \frac{1}{2} \epsilon \frac{d \log p(\theta \mid y)}{d \theta}\]
+<p>2.2 Use the momentum vector \(\phi\) to update the parameter vector \(\theta\):</p>
+\[ \theta \leftarrow \theta + \epsilon \mathbf{M}^{-1} \phi \]
+<p>2.3. Use again the gradient of log posterior of \(\theta\) to another <em>half-step</em> of \(\phi\):</p>
+\[ \phi \leftarrow \phi + \frac{1}{2} \epsilon \frac{d \log p(\theta \mid y)}{d \theta} \]
+<ol start=3 >
+<li><p>Assign \(\theta^{t-1}\) and \(\phi^{t-1}\) as the values of the parameter vector and the momentum vector, respectively, at the beginning of the <em>leapfrog</em> process &#40;step 2&#41; and \(\theta^*\) and \(\phi^*\) as the values after \(L\) steps. As an acceptance/rejection rule calculate:</p>
+
+</ol>
+\[ r = \frac{p(\theta^* \mid y) p(\phi^*)}{p(\theta^{t-1} \mid y) p(\phi^{-1})} \]
+<ol start=4 >
+<li><p>Assign:</p>
+
+</ol>
+\[\theta^t =
+     \begin{cases}
+     \theta^* & \text{with probability } \min (r, 1) \\
+     \theta^{t-1} & \text{otherwise}
+     \end{cases}\]
+<h3 id=hmc_implementation ><a href="#hmc_implementation" class=header-anchor >HMC – Implementation</a></h3>
+<p>Alright let&#39;s code the HMC algorithm for our toy example&#39;s bivariate normal distribution:</p>
+<pre><code class=language-julia >using ForwardDiff:gradient
+function hmc&#40;S::Int64, width::Float64, ρ::Float64;
+             L&#61;40, ϵ&#61;0.001,
+             μ_x::Float64&#61;0.0, μ_y::Float64&#61;0.0,
+             σ_x::Float64&#61;1.0, σ_y::Float64&#61;1.0,
+             start_x&#61;-2.5, start_y&#61;2.5,
+             seed&#61;123&#41;
+    rgn &#61; MersenneTwister&#40;seed&#41;
+    binormal &#61; MvNormal&#40;&#91;μ_x; μ_y&#93;, &#91;σ_x ρ; ρ σ_y&#93;&#41;
+    draws &#61; Matrix&#123;Float64&#125;&#40;undef, S, 2&#41;
+    accepted &#61; 0::Int64;
+    x &#61; start_x; y &#61; start_y
+    @inbounds draws&#91;1, :&#93; &#61; &#91;x y&#93;
+    M &#61; &#91;1. 0.; 0. 1.&#93;
+    ϕ_d &#61; MvNormal&#40;&#91;0.0, 0.0&#93;, M&#41;
+    for s in 2:S
+        x_ &#61; rand&#40;rgn, Uniform&#40;x - width, x &#43; width&#41;&#41;
+        y_ &#61; rand&#40;rgn, Uniform&#40;y - width, y &#43; width&#41;&#41;
+        ϕ &#61; rand&#40;rgn, ϕ_d&#41;
+        kinetic &#61; sum&#40;ϕ.^2&#41; / 2
+        log_p &#61; logpdf&#40;binormal, &#91;x, y&#93;&#41; - kinetic
+        ϕ &#43;&#61; 0.5 * ϵ * gradient&#40;x -&gt; logpdf&#40;binormal, x&#41;, &#91;x_, y_&#93;&#41;
+        for l in 1:L
+            x_, y_ &#61; &#91;x_, y_&#93; &#43; &#40;ϵ * M * ϕ&#41;
+            ϕ &#43;&#61; &#43; 0.5 * ϵ * gradient&#40;x -&gt; logpdf&#40;binormal, x&#41;, &#91;x_, y_&#93;&#41;
+        end
+        ϕ &#61; -ϕ # make the proposal symmetric
+        kinetic &#61; sum&#40;ϕ.^2&#41; / 2
+        log_p_ &#61; logpdf&#40;binormal, &#91;x_, y_&#93;&#41; - kinetic
+        r &#61; exp&#40;log_p_ - log_p&#41;
+
+        if r &gt; rand&#40;rgn, Uniform&#40;&#41;&#41;
+            x &#61; x_
+            y &#61; y_
+            accepted &#43;&#61; 1
+        end
+        @inbounds draws&#91;s, :&#93; &#61; &#91;x y&#93;
+    end
+    println&#40;&quot;Acceptance rate is: &#36;&#40;accepted / S&#41;&quot;&#41;
+    return draws
+end</code></pre><pre><code class="plaintext code-output">hmc (generic function with 1 method)</code></pre>
+<p>In the <code>hmc&#40;&#41;</code> function above I am using the <code>gradient&#40;&#41;</code> function from <a href="https://github.com/JuliaDiff/ForwardDiff.jl"><code>ForwardDiff.jl</code></a> &#40;Revels, Lubin &amp; Papamarkou, 2016&#41; which is Julia&#39;s package for forward mode auto differentiation &#40;autodiff&#41;. The <code>gradient&#40;&#41;</code> function accepts a function as input and an array \(\mathbf{X}\). It literally evaluates the function \(f\) at \(\mathbf{X}\) and returns the gradient \(\nabla f(\mathbf{X})\). This is one the advantages of Julia: I don&#39;t need to implement an autodiff for <code>logpdf&#40;&#41;</code>s of any distribution, it will be done automatically for any one from <code>Distributions.jl</code>. You can also try reverse mode autodiff with <a href="https://github.com/JuliaDiff/ReverseDiff.jl"><code>ReverseDiff.jl</code></a> if you want to; and it will also very easy to get a gradient. Now, we&#39;ve got carried away with Julia&#39;s amazing autodiff potential... Let me show you an example of a gradient of a log PDF evaluated at some value. I will use our <code>mvnormal</code> bivariate normal distribution as an example and evaluate its gradient at \(x = 1\) and \(y = -1\):</p>
+<pre><code class=language-julia >gradient&#40;x -&gt; logpdf&#40;mvnormal, x&#41;, &#91;1, -1&#93;&#41;</code></pre><pre><code class="plaintext code-output">2-element Vector{Float64}:
+ -5.000000000000003
+  5.000000000000003</code></pre>
+<p>So the gradient tells me that the partial derivative of \(x = 1\) with respect to our <code>mvnormal</code> distribution is <code>-5</code> and the partial derivative of \(y = -1\) with respect to our <code>mvnormal</code> distribution is <code>5</code>.</p>
+<p>Now let&#39;s run our HMC Markov chain. We are going to use \(L = 40\) and &#40;don&#39;t ask me how I found out&#41; \(\epsilon = 0.0856\):</p>
+<pre><code class=language-julia >X_hmc &#61; hmc&#40;S, width, ρ, ϵ&#61;0.0856, L&#61;40&#41;;</code></pre><pre><code class="plaintext code-output">Acceptance rate is: 0.2079
+</code></pre>
+<p>Our acceptance rate is 20.79&#37;. As before lets&#39; take a quick peek into <code>X_hmc</code>, we&#39;ll see it&#39;s a matrix of \(X\) and \(Y\) values as columns and the time \(t\) as rows:</p>
+<pre><code class=language-julia >X_hmc&#91;1:10, :&#93;</code></pre><pre><code class="plaintext code-output">10×2 Matrix{Float64}:
+ -2.5        2.5
+ -2.5        2.5
+ -1.50904    1.52822
+ -1.50904    1.52822
+ -1.85829   -0.464346
+ -0.739967  -1.15873
+ -0.739967  -1.15873
+ -0.739967  -1.15873
+ -0.739967  -1.15873
+ -0.739967  -1.15873</code></pre>
+<p>Again, we construct a <code>Chains</code> object by passing a matrix along with the parameters names as symbols inside the <code>Chains&#40;&#41;</code> constructor:</p>
+<pre><code class=language-julia >chain_hmc &#61; Chains&#40;X_hmc, &#91;:X, :Y&#93;&#41;;</code></pre>
+<p>Then we can get summary statistics regarding our Markov chain derived from the HMC algorithm:</p>
+<pre><code class=language-julia >summarystats&#40;chain_hmc&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse         ess      rhat
+      Symbol   Float64   Float64    Float64   Float64     Float64   Float64
+
+           X    0.0169    0.9373     0.0094    0.0199   1779.2547    1.0013
+           Y    0.0073    0.9475     0.0095    0.0219   1595.9863    1.0003
+</code></pre>
+<p>Both of <code>X</code> and <code>Y</code> have mean close to 0 and standard deviation close to 1 &#40;which are the theoretical values&#41;. Take notice of the <code>ess</code> &#40;effective sample size - ESS&#41; that is around 1,600. Now let&#39;s calculate the efficiency of our HMC algorithm by dividing the ESS by the number of sampling iterations:</p>
+<pre><code class=language-julia >mean&#40;summarystats&#40;chain_hmc&#41;&#91;:, :ess&#93;&#41; / S</code></pre><pre><code class="plaintext code-output">0.16876204825379865</code></pre>
+<p>We see that a simple naïve &#40;and not well-calibrated<sup id="fnref:calibrated"><a href="#fndef:calibrated" class=fnref >[9]</a></sup>&#41; HMC has 70&#37; more efficiency from both Gibbs and Metropolis. ≈ 10&#37; versus ≈ 17&#37;. Great&#33; 😀</p>
+<h4 id=hmc_visual_intuition ><a href="#hmc_visual_intuition" class=header-anchor >HMC – Visual Intuition</a></h4>
+<p>This wouldn&#39;t be complete without animations for HMC&#33;</p>
+<p>The animation in figure below shows the first 100 simulations of the HMC algorithm used to generate <code>X_hmc</code>. Note that we have a gradient-guided proposal at each iteration, so the animation would resemble more like a very lucky random-walk Metropolis <sup id="fnref:luckymetropolis"><a href="#fndef:luckymetropolis" class=fnref >[10]</a></sup>. The blue-filled ellipsis represents the 90&#37; HPD of our toy example&#39;s bivariate normal distribution.</p>
+<pre><code class=language-julia >plt &#61; covellipse&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.3,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;,
+    xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+hmc_anim &#61; @animate for i in 1:100
+    scatter&#33;&#40;plt, &#40;X_hmc&#91;i, 1&#93;, X_hmc&#91;i, 2&#93;&#41;,
+             label&#61;false, mc&#61;:red, ma&#61;0.5&#41;
+    plot&#33;&#40;X_hmc&#91;i:i &#43; 1, 1&#93;, X_hmc&#91;i:i &#43; 1, 2&#93;, seriestype&#61;:path,
+          lc&#61;:green, la&#61;0.5, label&#61;false&#41;
+end</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/hmc_anim.gif" alt=""> <div class=text-center ><em>Animation of the First 100 Samples Generated from the HMC Algorithm</em></div> <br/></p>
+<p>As usual, let&#39;s take a look how the first 1,000 simulations were, excluding 1,000 initial iterations as warm-up.</p>
+<pre><code class=language-julia >scatter&#40;&#40;X_hmc&#91;warmup:warmup &#43; 1_000, 1&#93;, X_hmc&#91;warmup:warmup &#43; 1_000, 2&#93;&#41;,
+         label&#61;false, mc&#61;:red, ma&#61;0.3,
+         xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+         xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+covellipse&#33;&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.5,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/hmc_first1000.svg" alt=""> <div class=text-center ><em>First 1,000 Samples Generated from the HMC Algorithm after warm-up</em></div> <br/></p>
+<p>And, finally, lets take a look in the all 9,000 samples generated after the warm-up of 1,000 iterations.</p>
+<pre><code class=language-julia >scatter&#40;&#40;X_hmc&#91;warmup:end, 1&#93;, X_hmc&#91;warmup:end, 2&#93;&#41;,
+         label&#61;false, mc&#61;:red, ma&#61;0.3,
+         xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+         xlabel&#61;L&quot;\theta_1&quot;, ylabel&#61;L&quot;\theta_2&quot;&#41;
+
+covellipse&#33;&#40;μ, Σ,
+    n_std&#61;1.64, # 5&#37; - 95&#37; quantiles
+    xlims&#61;&#40;-3, 3&#41;, ylims&#61;&#40;-3, 3&#41;,
+    alpha&#61;0.5,
+    c&#61;:steelblue,
+    label&#61;&quot;90&#37; HPD&quot;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/hmc_all.svg" alt=""> <div class=text-center ><em>All 9,000 Samples Generated from the HMC Algorithm after warm-up</em></div> <br/></p>
+<h3 id=hmc_complex_topologies ><a href="#hmc_complex_topologies" class=header-anchor >HMC – Complex Topologies</a></h3>
+<p>There are cases where HMC will be much better than Metropolis or Gibbs. In particular, these cases focus on complicated and difficult-to-explore posterior topologies. In these contexts, an algorithm that can guide the proposals to regions of higher density &#40;such as the case of the HMC&#41; is able to explore much more efficient &#40;less iterations for convergence&#41; and effective &#40;higher rate of acceptance of the proposals&#41;.</p>
+<p>See figure below for an example of a bimodal posterior density with also the marginal histogram of \(X\) and \(Y\):</p>
+\[
+X = \text{Normal} \left(
+\begin{bmatrix}
+10 \\
+2
+\end{bmatrix},
+\begin{bmatrix}
+1 & 0 \\
+0 & 1
+\end{bmatrix}
+\right), \quad
+Y = \text{Normal} \left(
+\begin{bmatrix}
+0 \\
+0
+\end{bmatrix},
+\begin{bmatrix}
+8.4 & 2.0 \\
+2.0 & 1.7
+\end{bmatrix}
+\right)
+\]
+<pre><code class=language-julia >d1 &#61; MvNormal&#40;&#91;10, 2&#93;, &#91;1 0; 0 1&#93;&#41;
+d2 &#61; MvNormal&#40;&#91;0, 0&#93;, &#91;8.4 2.0; 2.0 1.7&#93;&#41;
+
+d &#61; MixtureModel&#40;&#91;d1, d2&#93;&#41;
+
+data_mixture &#61; rand&#40;d, 1_000&#41;&#39;
+
+marginalkde&#40;data_mixture&#91;:, 1&#93;, data_mixture&#91;:, 2&#93;,
+            clip&#61;&#40;&#40;-1.6, 3&#41;, &#40;-3, 3&#41;&#41;,
+            xlabel&#61;L&quot;X&quot;, ylabel&#61;L&quot;Y&quot;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/bimodal.svg" alt=""> <div class=text-center ><em>Multivariate Bimodal Normal</em></div> <br/></p>
+<p>And to finish an example of Neal&#39;s funnel &#40;Neal, 2003&#41; in the figure below. This is a very difficult posterior to be sampled even for HMC, as it varies in geometry in the dimensions \(X\) and \(Y\). This means that the HMC sampler has to change the <em>leapfrog steps</em> \(L\) and the scaling factor \(\epsilon\) every time, since at the top of the image &#40;the top of the funnel&#41; a large value of \(L\) is needed along with a small \(\epsilon\); and at the bottom &#40;at the bottom of the funnel&#41; the opposite: small \(L\) and large \(\epsilon\).</p>
+<pre><code class=language-julia >funnel_y &#61; rand&#40;Normal&#40;0, 3&#41;, 10_000&#41;
+funnel_x &#61; rand&#40;Normal&#40;&#41;, 10_000&#41; .* exp.&#40;funnel_y / 2&#41;
+
+scatter&#40;&#40;funnel_x, funnel_y&#41;,
+        label&#61;false, mc&#61;:steelblue, ma&#61;0.3,
+        xlabel&#61;L&quot;X&quot;, ylabel&#61;L&quot;Y&quot;,
+        xlims&#61;&#40;-100, 100&#41;&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/funnel.svg" alt=""> <div class=text-center ><em>Neal&#39;s Funnel</em></div> <br/></p>
+<h2 id=i_understood_nothing ><a href="#i_understood_nothing" class=header-anchor >&quot;I understood nothing...&quot;</a></h2>
+<p>If you haven&#39;t understood anything by now, don&#39;t despair. Skip all the formulas and get the visual intuition of the algorithms. See the limitations of Metropolis and Gibbs and compare the animations and figures with those of the HMC. The superiority of efficiency &#40;more samples with low autocorrelation - ESS&#41; and effectiveness &#40;more samples close to the most likely areas of the target distribution&#41; is self-explanatory by the images.</p>
+<p>In addition, you will probably <strong>never</strong> have to code your HMC algorithm &#40;Gibbs, Metropolis or any other MCMC&#41; by hand. For that there are packages like Turing&#39;s <a href="https://github.com/TuringLang/AdvancedHMC.jl"><code>AdvancedHMC.jl</code></a> In addition, <code>AdvancedHMC</code> has a modified HMC with a technique called <strong>N</strong>o-<strong>U</strong>-<strong>T</strong>urn <strong>S</strong>ampling &#40;NUTS&#41;<sup id="fnref:nuts"><a href="#fndef:nuts" class=fnref >[11]</a></sup> &#40;Hoffman &amp; Gelman, 2011&#41; that selects automatically the values ​​of \(\epsilon\) &#40;scaling factor&#41; and \(L\) &#40;<em>leapfrog steps</em>&#41;. The performance of the HMC is highly sensitive to these two &quot;hyperparameters&quot; &#40;parameters that must be specified by the user&#41;. In particular, if \(L\) is too small, the algorithm exhibits undesirable behavior of a random walk, while if \(L\) is too large, the algorithm wastes computational efficiency. NUTS uses a recursive algorithm to build a set of likely candidate points that span a wide range of proposal distribution, automatically stopping when it starts to go back and retrace its steps &#40;why it doesn&#39;t turn around - <em>No U-turn</em>&#41;, in addition NUTS also automatically calibrates simultaneously \(L\) and \(\epsilon\).</p>
+<h2 id=mcmc_metrics ><a href="#mcmc_metrics" class=header-anchor >MCMC Metrics</a></h2>
+<p>All Markov chains have some convergence and diagnostics metrics that you should be aware of. Note that this is still an ongoing area of intense research and new metrics are constantly being proposed &#40;<em>e.g.</em> Lambert &amp; Vehtari &#40;2020&#41; or Vehtari, Gelman., Simpson, Carpenter &amp; Bürkner &#40;2021&#41;&#41; To show MCMC metrics let me recover our six-sided dice example from <a href="/Bayesian-Julia/pages/4_Turing/">4. <strong>How to use Turing</strong></a>:</p>
+<pre><code class=language-julia >using Turing
+
+@model dice_throw&#40;y&#41; &#61; begin
+    #Our prior belief about the probability of each result in a six-sided dice.
+    #p is a vector of length 6 each with probability p that sums up to 1.
+    p ~ Dirichlet&#40;6, 1&#41;
+
+    #Each outcome of the six-sided dice has a probability p.
+    y ~ filldist&#40;Categorical&#40;p&#41;, length&#40;y&#41;&#41;
+end;</code></pre>
+<p>Let&#39;s once again generate 1,000 throws of a six-sided dice:</p>
+<pre><code class=language-julia >data_dice &#61; rand&#40;DiscreteUniform&#40;1, 6&#41;, 1_000&#41;;</code></pre>
+<p>Like before we&#39;ll sample using <code>NUTS&#40;&#41;</code> and 2,000 iterations. Note that you can use Metropolis with <code>MH&#40;&#41;</code>, Gibbs with <code>Gibbs&#40;&#41;</code> and HMC with <code>HMC&#40;&#41;</code> if you want to. You can check all Turing&#39;s different MCMC samplers in <a href="https://turing.ml/dev/docs/using-turing/guide">Turing&#39;s documentation</a>.</p>
+<pre><code class=language-julia >model &#61; dice_throw&#40;data_dice&#41;
+chain &#61; sample&#40;model, NUTS&#40;&#41;, 2_000&#41;;
+summarystats&#40;chain&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse         ess      rhat   ess_per_sec
+      Symbol   Float64   Float64    Float64   Float64     Float64   Float64       Float64
+
+        p[1]    0.1618    0.0117     0.0003    0.0002   2992.5923    1.0002       65.4691
+        p[2]    0.1799    0.0124     0.0003    0.0002   3149.3095    1.0001       68.8976
+        p[3]    0.1662    0.0119     0.0003    0.0002   2950.6942    0.9995       64.5525
+        p[4]    0.1643    0.0115     0.0003    0.0001   3088.0464    0.9999       67.5573
+        p[5]    0.1616    0.0118     0.0003    0.0002   3857.0508    0.9996       84.3809
+        p[6]    0.1662    0.0119     0.0003    0.0002   3244.3490    0.9996       70.9768
+</code></pre>
+<p>We have the following columns that outpus some kind of MCMC summary statistics:</p>
+<ul>
+<li><p><code>mcse</code>: <strong>M</strong>onte <strong>C</strong>arlo <strong>S</strong>tandard <strong>E</strong>rror, the uncertainty about a statistic in the sample due to sampling error.</p>
+
+<li><p><code>ess</code>: <strong>E</strong>ffective <strong>S</strong>ample <strong>S</strong>ize, a rough approximation of the number of effective samples sampled by the MCMC estimated by the value of <code>rhat</code>.</p>
+
+<li><p><code>rhat</code>: a metric of convergence and stability of the Markov chain.</p>
+
+</ul>
+<p>The most important metric to take into account is the <code>rhat</code> which is a metric that measures whether the Markov chains are stable and converged to a value during the total progress of the sampling procedure. It is basically the proportion of variation when comparing two halves of the chains after discarding the warmups. A value of 1 implies convergence and stability. By default, <code>rhat</code> must be less than 1.01 for the Bayesian estimation to be valid &#40;Brooks &amp; Gelman, 1998; Gelman &amp; Rubin, 1992&#41;.</p>
+<p>Note that all of our model&#39;s parameters have achieve a nice <code>ess</code> and, more important, <code>rhat</code> in the desired range, a solid indicator that the Markov chain is stable and has converged to the estimated parameter values.</p>
+<h3 id=what_looks_like_when_your_model_doesnt_converge ><a href="#what_looks_like_when_your_model_doesnt_converge" class=header-anchor >What looks like when your model doesn&#39;t converge</a></h3>
+<p>Depending on the model and data, it is possible that HMC &#40;even with NUTS&#41; will not achieve convergence. NUTS will not converge if it encounters divergences either due to a very pathological posterior density topology or if you supply improper parameters. To exemplify let me run a &quot;bad&quot; chain by passing the <code>NUTS&#40;&#41;</code> constructor a target acceptance rate of <code>0.3</code> with only 500 sampling iterations &#40;including warmup&#41;:</p>
+<pre><code class=language-julia >bad_chain &#61; sample&#40;model, NUTS&#40;0.3&#41;, 500&#41;
+summarystats&#40;bad_chain&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse       ess      rhat   ess_per_sec
+      Symbol   Float64   Float64    Float64   Float64   Float64   Float64       Float64
+
+        p[1]    0.1616    0.0123     0.0006    0.0027   28.6839    1.0520       13.3104
+        p[2]    0.1803    0.0083     0.0004    0.0015   30.8585    1.0163       14.3195
+        p[3]    0.1661    0.0089     0.0004    0.0012   61.7331    0.9987       28.6465
+        p[4]    0.1645    0.0110     0.0005    0.0010   39.7601    1.0410       18.4502
+        p[5]    0.1597    0.0117     0.0005    0.0018   55.1210    0.9987       25.5782
+        p[6]    0.1677    0.0129     0.0006    0.0022   44.4133    1.0059       20.6094
+</code></pre>
+<p>Here we can see that the <code>ess</code> and <code>rhat</code> of the <code>bad_chain</code> are <em>really</em> bad&#33; There will be several divergences that we can access in the column <code>numerical_error</code> of a <code>Chains</code> object. Here we have 64 divergences.</p>
+<pre><code class=language-julia >sum&#40;bad_chain&#91;:numerical_error&#93;&#41;</code></pre><pre><code class="plaintext code-output">150.0</code></pre>
+<p>Also we can see the Markov chain acceptance rate in the column <code>acceptance_rate</code>. This is the <code>bad_chain</code> acceptance rate:</p>
+<pre><code class=language-julia >mean&#40;bad_chain&#91;:acceptance_rate&#93;&#41;</code></pre><pre><code class="plaintext code-output">0.04970098759043162</code></pre>
+<p>And now the &quot;good&quot; <code>chain</code>:</p>
+<pre><code class=language-julia >mean&#40;chain&#91;:acceptance_rate&#93;&#41;</code></pre><pre><code class="plaintext code-output">0.7891898673607158</code></pre>
+<p>What a difference huh? 80&#37; versus 1.5&#37;.</p>
+<h3 id=mcmc_visualizations ><a href="#mcmc_visualizations" class=header-anchor >MCMC Visualizations</a></h3>
+<p>Besides the <code>rhat</code> values, we can also visualize the Markov chain with a <em>traceplot</em>. The <em>traceplot</em> is the overlap of the MCMC chain sampling for each estimated parameter &#40;vertical axis&#41;. The idea is that the chains mix and that there is no slope or visual pattern along the iterations &#40;horizontal axis&#41;. This demonstrates that the chains have mixed converged to a certain value of the parameter and remained in that region during a good part &#40;or all&#41; of the Markov chain sampling. We can do that with the <code>MCMCChains.jl</code>&#39;s function <code>traceplot&#40;&#41;</code>. Let&#39;s look the &quot;good&quot; <code>chain</code> first:</p>
+<pre><code class=language-julia >traceplot&#40;chain&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/traceplot_chain.svg" alt=""> <div class=text-center ><em>Traceplot for <code>chain</code></em></div> <br/></p>
+<p>And now the <code>bad_chain</code>:</p>
+<pre><code class=language-julia >traceplot&#40;bad_chain&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/5_MCMC/code/output/traceplot_bad_chain.svg" alt=""> <div class=text-center ><em>Traceplot for <code>bad_chain</code></em></div> <br/></p>
+<p>We can see that the <code>bad_chain</code> is all over the place and has definitely not converged or became stable.</p>
+<h2 id=how_to_make_your_markov_chains_converge ><a href="#how_to_make_your_markov_chains_converge" class=header-anchor >How to make your Markov chains converge</a></h2>
+<p><strong>First</strong>: Before making fine adjustments to the number of chains or the number of iterations &#40;among others ...&#41; know that Turing&#39;s NUTS sampler is very efficient and effective in exploring the most diverse and complex &quot;crazy&quot; topologies of posteriors&#39; target distributions. The standard arguments <code>NUTS&#40;&#41;</code> work perfectly for 99&#37; of cases &#40;even in complex models&#41;. That said, <strong>most of the time when you have sampling and computational problems in your Bayesian model, the problem is in the model specification and not in the MCMC sampling algorithm</strong>. This is known as <em>Folk Theorem</em> &#40;Gelman, 2008&#41;. In the words of Andrew Gelman:</p>
+<blockquote>
+<p>&quot;When you have computational problems, often there&#39;s a problem with your model&quot;. <br/> <br/> Andrew Gelman &#40;Gelman, 2008&#41;</p>
+</blockquote>
+<p>If your Bayesian model has problems with convergence there are some steps that can be tried<sup id="fnref:QR"><a href="#fndef:QR" class=fnref >[12]</a></sup>. Listed here from the simplest to the most complex:</p>
+<ol>
+<li><p><strong>Increase the number of iterations and chains</strong>: First option is to increase the number of MCMC iterations and it is also possible to increase the number of paralle chains to be sampled.</p>
+
+<li><p><strong>Model reparametrization</strong>: the second option is to reparameterize the model. There are two ways to parameterize the model: the first with centered parameterization &#40;CP&#41; and the second with non-centered parameterization &#40;NCP&#41;. NCP is most useful in Multilevel Models, therefore we will cover NCP in <a href="/Bayesian-Julia/pages/10_multilevel_models/">10. <strong>Multilevel Models</strong></a>.</p>
+
+<li><p><strong>Collect more data</strong>: sometimes the model is too complex and we need a larger sample to get stable estimates.</p>
+
+<li><p><strong>Rethink the model</strong>: convergence failure when we have adequate sampling is usually due to a specification of priors and likelihood function that are not compatible with the data. In this case, it is necessary to rethink the data&#39;s generative process in which the model&#39;s assumptions are anchored.</p>
+
+</ol>
+<h2 id=footnotes ><a href="#footnotes" class=header-anchor >Footnotes</a></h2>
+<p><table class=fndef  id="fndef:propto">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:propto">[1]</a>
+        <td class=fndef-content >the symbol \(\propto\) &#40;<code>\propto</code>&#41; should be read as &quot;proportional to&quot;.
+    
+</table>
+<table class=fndef  id="fndef:warmup">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:warmup">[2]</a>
+        <td class=fndef-content >some references call this process <em>burnin</em>.
+    
+</table>
+<table class=fndef  id="fndef:metropolis">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:metropolis">[3]</a>
+        <td class=fndef-content >if you want a better explanation of the Metropolis and Metropolis-Hastings algorithms I suggest to see Chib &amp; Greenberg &#40;1995&#41;.
+    
+</table>
+<table class=fndef  id="fndef:numerical">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:numerical">[4]</a>
+        <td class=fndef-content >Due to easier computational complexity and to avoid <a href="https://en.wikipedia.org/wiki/Integer_overflow">numeric overflow</a> we generally use sum of logs instead of multiplications, specially when dealing with probabilities, <em>i.e.</em> \(\mathbb{R} \in [0, 1]\).
+    
+</table>
+<table class=fndef  id="fndef:mcmcchains">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:mcmcchains">[5]</a>
+        <td class=fndef-content >this is one of the packages of Turing&#39;s ecosystem. I recommend you to take a look into <a href="/Bayesian-Julia/pages/4_Turing/">4. <strong>How to use Turing</strong></a>.
+    
+</table>
+<table class=fndef  id="fndef:gibbs">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:gibbs">[6]</a>
+        <td class=fndef-content >if you want a better explanation of the Gibbs algorithm I suggest to see Casella &amp; George &#40;1992&#41;.
+    
+</table>
+<table class=fndef  id="fndef:gibbs2">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:gibbs2">[7]</a>
+        <td class=fndef-content >this will be clear in the animations and images.
+    
+</table>
+<table class=fndef  id="fndef:markovparallel">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:markovparallel">[8]</a>
+        <td class=fndef-content >note that there is some shenanigans here to take care. You would also want to have different seeds for the random number generator in each Markov chain. This is why <code>metropolis&#40;&#41;</code> and <code>gibbs&#40;&#41;</code> have a <code>seed</code> parameter.
+    
+</table>
+<table class=fndef  id="fndef:calibrated">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:calibrated">[9]</a>
+        <td class=fndef-content >as detailed in the following sections, HMC is quite sensitive to the choice of \(L\) and \(\epsilon\) and I haven&#39;t tried to get the best possible combination of those.
+    
+</table>
+<table class=fndef  id="fndef:luckymetropolis">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:luckymetropolis">[10]</a>
+        <td class=fndef-content >or a not-drunk random-walk Metropolis 😂.
+    
+</table>
+<table class=fndef  id="fndef:nuts">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:nuts">[11]</a>
+        <td class=fndef-content >NUTS is an algorithm that uses the symplectic leapfrog integrator and builds a binary tree composed of leaf nodes that are simulations of Hamiltonian dynamics using \(2^j\)<em>leapfrog steps</em> in forward or backward directions in time where \(j\) is the integer representing the iterations of the construction of the binary tree. Once the simulated particle starts to retrace its trajectory, the tree construction is interrupted and the ideal number of \(L\)<em>leapfrog steps</em> is defined as \(2^j\) in time \(j-1\) from the beginning of the retrogression of the trajectory. So the simulated particle never &quot;turns around&quot; so &quot;No U-turn&quot;. For more details on the algorithm and how it relates to Hamiltonian dynamics see Hoffman &amp; Gelman &#40;2011&#41;.
+    
+</table>
+<table class=fndef  id="fndef:QR">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:QR">[12]</a>
+        <td class=fndef-content >furthermore, if you have high-correlated variables in your model, you can try a QR decomposition of the data matrix \(X\). I will cover QR decomposition and other Turing&#39;s computational &quot;tricks of the trade&quot; in <a href="/Bayesian-Julia/pages/11_Turing_tricks/">11. <strong>Computational Tricks with Turing</strong></a>.
+    
+</table>
+</p>
+<h2 id=references ><a href="#references" class=header-anchor >References</a></h2>
+<p>Betancourt, M. &#40;2017, January 9&#41;. A Conceptual Introduction to Hamiltonian Monte Carlo. Retrieved November 6, 2019, from http://arxiv.org/abs/1701.02434</p>
+<p>Brooks, S., Gelman, A., Jones, G., &amp; Meng, X.-L. &#40;2011&#41;. Handbook of Markov Chain Monte Carlo. Retrieved from https://books.google.com?id&#61;qfRsAIKZ4rIC</p>
+<p>Brooks, S. P., &amp; Gelman, A. &#40;1998&#41;. General Methods for Monitoring Convergence of Iterative Simulations. Journal of Computational and Graphical Statistics, 7&#40;4&#41;, 434–455. https://doi.org/10.1080/10618600.1998.10474787</p>
+<p>Casella, G., &amp; George, E. I. &#40;1992&#41;. Explaining the gibbs sampler. The American Statistician, 46&#40;3&#41;, 167–174. https://doi.org/10.1080/00031305.1992.10475878</p>
+<p>Chib, S., &amp; Greenberg, E. &#40;1995&#41;. Understanding the Metropolis-Hastings Algorithm. The American Statistician, 49&#40;4&#41;, 327–335. https://doi.org/10.1080/00031305.1995.10476177</p>
+<p>Duane, S., Kennedy, A. D., Pendleton, B. J., &amp; Roweth, D. &#40;1987&#41;. Hybrid Monte Carlo. Physics Letters B, 195&#40;2&#41;, 216–222. https://doi.org/10.1016/0370-2693&#40;87&#41;91197-X</p>
+<p>Eckhardt, R. &#40;1987&#41;. Stan Ulam, John von Neumann, and the Monte Carlo Method. Los Alamos Science, 15&#40;30&#41;, 131–136.</p>
+<p>Gelman, A. &#40;1992&#41;. Iterative and Non-Iterative Simulation Algorithms. Computing Science and Statistics &#40;Interface Proceedings&#41;, 24, 457–511. PROCEEDINGS PUBLISHED BY VARIOUS PUBLISHERS.</p>
+<p>Gelman, A. &#40;2008&#41;. The folk theorem of statistical computing. Retrieved from https://statmodeling.stat.columbia.edu/2008/05/13/the<em>folk</em>theore/</p>
+<p>Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., &amp; Rubin, D. B. &#40;2013a&#41;. Basics of Markov Chain Simulation. In Bayesian Data Analysis. Chapman and Hall/CRC.</p>
+<p>Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., &amp; Rubin, D. B. &#40;2013b&#41;. Bayesian Data Analysis. Chapman and Hall/CRC.</p>
+<p>Gelman, A., &amp; Rubin, D. B. &#40;1992&#41;. Inference from Iterative Simulation Using Multiple Sequences. Statistical Science, 7&#40;4&#41;, 457–472. https://doi.org/10.1214/ss/1177011136</p>
+<p>Geman, S., &amp; Geman, D. &#40;1984&#41;. Stochastic Relaxation, Gibbs Distributions, and the Bayesian Restoration of Images. IEEE Transactions on Pattern Analysis and Machine Intelligence, PAMI-6&#40;6&#41;, 721–741. https://doi.org/10.1109/TPAMI.1984.4767596</p>
+<p>Hastings, W. K. &#40;1970&#41;. Monte Carlo sampling methods using Markov chains and their applications. Biometrika, 57&#40;1&#41;, 97–109. https://doi.org/10.1093/biomet/57.1.97</p>
+<p>Hoffman, M. D., &amp; Gelman, A. &#40;2011&#41;. The No-U-Turn Sampler: Adaptively Setting Path Lengths in Hamiltonian Monte Carlo. Journal of Machine Learning Research, 15&#40;1&#41;, 1593–1623. Retrieved from http://arxiv.org/abs/1111.4246</p>
+<p>Lambert, B., &amp; Vehtari, A. &#40;2020&#41;. \(R^*\): A robust MCMC convergence diagnostic with uncertainty using decision tree classifiers. ArXiv:2003.07900 &#91;Stat&#93;. http://arxiv.org/abs/2003.07900</p>
+<p>Metropolis, N., Rosenbluth, A. W., Rosenbluth, M. N., Teller, A. H., &amp; Teller, E. &#40;1953&#41;. Equation of State Calculations by Fast Computing Machines. The Journal of Chemical Physics, 21&#40;6&#41;, 1087–1092. https://doi.org/10.1063/1.1699114</p>
+<p>Neal, Radford M. &#40;1994&#41;. An Improved Acceptance Procedure for the Hybrid Monte Carlo Algorithm. Journal of Computational Physics, 111&#40;1&#41;, 194–203. https://doi.org/10.1006/jcph.1994.1054</p>
+<p>Neal, Radford M. &#40;2003&#41;. Slice Sampling. The Annals of Statistics, 31&#40;3&#41;, 705–741. Retrieved from https://www.jstor.org/stable/3448413</p>
+<p>Neal, Radford M. &#40;2011&#41;. MCMC using Hamiltonian dynamics. In S. Brooks, A. Gelman, G. L. Jones, &amp; X.-L. Meng &#40;Eds.&#41;, Handbook of markov chain monte carlo.</p>
+<p>Revels, J., Lubin, M., &amp; Papamarkou, T. &#40;2016&#41;. Forward-Mode Automatic Differentiation in Julia. ArXiv:1607.07892 &#91;Cs&#93;. http://arxiv.org/abs/1607.07892</p>
+<p>Roberts, G. O., Gelman, A., &amp; Gilks, W. R. &#40;1997&#41;. Weak convergence and optimal scaling of random walk Metropolis algorithms. Annals of Applied Probability, 7&#40;1&#41;, 110–120. https://doi.org/10.1214/aoap/1034625254</p>
+<p>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., &amp; Bürkner, P.-C. &#40;2021&#41;. Rank-Normalization, Folding, and Localization: An Improved Rˆ for Assessing Convergence of MCMC. Bayesian Analysis, 1&#40;1&#41;, 1–28. https://doi.org/10.1214/20-BA1221</p>
+
+<div class=page-foot >
+  <div class=copyright >
+    Last modified: August 24, 2021. Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+  </div>
+</div>
+</div>
+    </div> 
+    </div> 
+    </div> <!-- end of class page-wrap-->
+    
+      <script src="/Bayesian-Julia/libs/katex/katex.min.js"></script>
+<script src="/Bayesian-Julia/libs/katex/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+      <script src="/Bayesian-Julia/libs/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();hljs.configure({tabReplace: '    '});</script>

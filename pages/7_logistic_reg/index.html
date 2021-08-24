@@ -1,0 +1,148 @@
+<!doctype html> <html lang=en > <meta charset=UTF-8 > <meta name=viewport  content="width=device-width, initial-scale=1"> <link rel=stylesheet  href="/Bayesian-Julia/libs/katex/katex.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/libs/highlight/github.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/css/jtd.css"> <link rel=icon  href="/Bayesian-Julia/assets/favicon.ico"> <title>Bayesian Logistic Regression</title> <div class=page-wrap > <div class=side-bar > <div class=header > <a href="/Bayesian-Julia/" class=title > Bayesian Stats </a> </div> <label for=show-menu  class=show-menu >MENU</label> <input type=checkbox  id=show-menu  role=button > <div class=menu  id=side-menu > <ul class=menu-list > <li class="menu-list-item "><a href="/Bayesian-Julia/" class="menu-list-link ">Home</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/1_why_Julia/" class="menu-list-link ">1. Why Julia?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/2_bayes_stats/" class="menu-list-link ">2. What is Bayesian Statistics?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/3_prob_dist/" class="menu-list-link ">3. Common Probability Distributions</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/4_Turing/" class="menu-list-link ">4. How to use Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/5_MCMC/" class="menu-list-link ">5. Markov Chain Monte Carlo (MCMC)</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/6_linear_reg/" class="menu-list-link ">6. Bayesian Linear Regression</a> <li class="menu-list-item active"><a href="/Bayesian-Julia/pages/7_logistic_reg/" class="menu-list-link active">7. Bayesian Logistic Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/8_count_reg/" class="menu-list-link ">8. Bayesian Regression with Count Data</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/9_robust_reg/" class="menu-list-link ">9. Robust Bayesian Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/10_multilevel_models/" class="menu-list-link ">10. Multilevel Models</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/11_Turing_tricks/" class="menu-list-link ">11. Computational Tricks with Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/12_epi_models/" class="menu-list-link ">12. Bayesian Epidemiological Models</a> </ul> </div> <div class=footer > <a href="https://www.julialang.org"><img style="height:50px;padding-left:10px;margin-bottom:15px;" src="https://julialang.org/assets/infra/logo.svg" alt="Julia Logo"></a> </div> </div> <div class=main-content-wrap > <div class=main-content > <div class=main-header > <a id=github  href="https://github.com/storopoli/Bayesian-Julia">Code on GitHub</a> </div> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-186284914-6"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-186284914-6'); </script> <div class=franklin-content ><div class=franklin-toc ><ol><li><a href="#comparison_with_linear_regression">Comparison with Linear Regression</a><li><a href="#bayesian_logistic_regression__2">Bayesian Logistic Regression</a><ol><li><a href="#using_bernoulli_likelihood">Using Bernoulli Likelihood</a><li><a href="#using_binomial_likelihood">Using Binomial Likelihood</a></ol><li><a href="#example_-_contaminated_water_wells">Example - Contaminated Water Wells</a><li><a href="#footnotes">Footnotes</a><li><a href="#references">References</a></ol></div> <h1 id=bayesian_logistic_regression ><a href="#bayesian_logistic_regression" class=header-anchor >Bayesian Logistic Regression</a></h1> <p>Leaving the universe of linear models, we start to venture into generalized linear models &#40;GLM&#41;. The first is <strong>logistic regression</strong> &#40;also called binomial regression&#41;.</p> <p>A logistic regression behaves exactly like a linear model: it makes a prediction simply by computing a weighted sum of the independent variables \(\mathbf{X}\) by the estimated coefficients \(\boldsymbol{\beta}\), plus an intercept \(\alpha\). However, instead of returning a continuous value \(y\), such as linear regression, it returns the <strong>logistic function</strong> of \(y\):</p> \[ \text{Logistic}(x) = \frac{1}{1 + e^{(-x)}} \] <p>We use logistic regression when our dependent variable is binary. It has only two distinct values, usually encoded as \(0\) or \(1\). See the figure below for a graphical intuition of the logistic function:</p> <pre><code class=language-julia >using Plots, LaTeXStrings
+
+function logistic&#40;x&#41;
+    return 1 / &#40;1 &#43; exp&#40;-x&#41;&#41;
+end
+
+plot&#40;logistic, -10, 10, label&#61;false,
+     xlabel&#61;L&quot;x&quot;, ylabel&#61;L&quot;\mathrm&#123;Logistic&#125;&#40;x&#41;&quot;&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/7_logistic_reg/code/output/logistic.svg" alt=""> <div class=text-center ><em>Logistic Function</em></div> <br/></p> <p>As we can see, the logistic function is basically a mapping of any real number to a real number in the range between 0 and 1:</p> \[ \text{Logistic}(x) = \{ \mathbb{R} \in [- \infty , + \infty] \} \to \{ \mathbb{R} \in (0, 1) \} \] <p>That is, the logistic function is the ideal candidate for when we need to convert something continuous without restrictions to something continuous restricted between 0 and 1. That is why it is used when we need a model to have a probability as a dependent variable &#40;remembering that any real number between 0 and 1 is a valid probability&#41;. In the case of a binary dependent variable, we can use this probability as the chance of the dependent variable taking a value of 0 or 1.</p> <h2 id=comparison_with_linear_regression ><a href="#comparison_with_linear_regression" class=header-anchor >Comparison with Linear Regression</a></h2> <p>Linear regression follows the following mathematical formulation:</p> \[ \text{Linear} = \theta_0 + \theta_1 x_1 + \theta_2 x_2 + \dots + \theta_n x_n \] <ul> <li><p>\(\theta\) - model parameters</p> <ul> <li><p>\(\theta_0\) - intercept</p> <li><p>\(\theta_1, \theta_2, \dots\) - independent variables \(x_1, x_2, \dots\) coefficients</p> </ul> <li><p>\(n\) - total number of independent variables</p> </ul> <p>Logistic regression would add the logistic function to the linear term:</p> <ul> <li><p>\(\hat{p} = \text{Logistic}(\text{Linear}) = \frac{1}{1 + e^{-\operatorname{Linear}}}\) - predicted probability of the observation being the value 1</p> <li><p>\(\hat{\mathbf{y}}=\left\{\begin{array}{ll} 0 & \text { if } \hat{p} < 0.5 \\ 1 & \text { if } \hat{p} \geq 0.5 \end{array}\right.\) - predicted discreve value of \(\mathbf{y}\)</p> </ul> <p><strong>Example</strong>:</p> \[ \text{Probability of Death} = \text{Logistic} \big(-10 + 10 \cdot \text{cancer} + 12 \cdot \text{diabetes} + 8 \cdot \text{obesity} \big) \] <h2 id=bayesian_logistic_regression__2 ><a href="#bayesian_logistic_regression__2" class=header-anchor >Bayesian Logistic Regression</a></h2> <p>We can model logistic regression in two ways. The first option with a <strong>Bernoulli likelihood</strong> function and the second option with a <strong>binomial likelihood</strong> function.</p> <p>With the <strong>Bernoulli likelihood</strong> we model a binary dependent variable \(y\) which is the result of a Bernoulli trial with a certain probability \(p\).</p> <p>In a <strong>binomial likelihood</strong>, we model a continuous dependent variable \(y\) which is the number of successes of \(n\) independent Bernoulli trials.</p> <h3 id=using_bernoulli_likelihood ><a href="#using_bernoulli_likelihood" class=header-anchor >Using Bernoulli Likelihood</a></h3> \[ \begin{aligned} \mathbf{y} &\sim \text{Bernoulli}\left( p \right) \\ \mathbf{p} &\sim \text{Logistic}(\alpha + \mathbf{X} \cdot \boldsymbol{\beta}) \\ \alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\ \boldsymbol{\beta} &\sim \text{Normal}(\mu_{\boldsymbol{\beta}}, \sigma_{\boldsymbol{\beta}}) \end{aligned} \] <p>where:</p> <ul> <li><p>\(\mathbf{y}\) – binary dependent variable.</p> <li><p>\(\mathbf{p}\) – probability of \(\mathbf{y}\) taking the value of \(\mathbf{y}\) – success of an independent Bernoulli trial.</p> <li><p>\(\text{Logistic}\) – logistic function.</p> <li><p>\(\alpha\) – intercept.</p> <li><p>\(\boldsymbol{\beta}\) – coefficient vector.</p> <li><p>\(\mathbf{X}\) – data matrix.</p> </ul> <h3 id=using_binomial_likelihood ><a href="#using_binomial_likelihood" class=header-anchor >Using Binomial Likelihood</a></h3> \[ \begin{aligned} \mathbf{y} &\sim \text{Binomial}\left( n, p \right) \\ \mathbf{p} &\sim \text{Logistic}(\alpha + \mathbf{X} \cdot \boldsymbol{\beta}) \\ \alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\ \boldsymbol{\beta} &\sim \text{Normal}(\mu_{\boldsymbol{\beta}}, \sigma_{\boldsymbol{\beta}}) \end{aligned} \] <p>where:</p> <ul> <li><p>\(\mathbf{y}\) – binary dependent variable – successes of \(n\) independent Bernoulli trials.</p> <li><p>\(n\) – number of independent Bernoulli trials.</p> <li><p>\(\mathbf{p}\) – probability of \(\mathbf{y}\) taking the value of \(\mathbf{y}\) – success of an independent Bernoulli trial.</p> <li><p>\(\text{Logistic}\) – logistic function.</p> <li><p>\(\alpha\) – intercept.</p> <li><p>\(\boldsymbol{\beta}\) – coefficient vector.</p> <li><p>\(\mathbf{X}\) – data matrix.</p> </ul> <p>In both likelihood options, what remains is to specify the model parameters&#39; prior distributions:</p> <ul> <li><p>Prior Distribution of \(\alpha\) – Knowledge we possess regarding the model&#39;s intercept.</p> <li><p>Prior Distribution of \(\boldsymbol{\beta}\) – Knowledge we possess regarding the model&#39;s independent variables&#39; coefficients.</p> </ul> <p>Our goal is to instantiate a logistic regression with the observed data &#40;\(\mathbf{y}\) and \(\mathbf{X}\)&#41; and find the posterior distribution of our model&#39;s parameters of interest &#40;\(\alpha\) and \(\boldsymbol{\beta}\)&#41;. This means to find the full posterior distribution of:</p> \[ P(\boldsymbol{\theta} \mid \mathbf{y}) = P(\alpha, \boldsymbol{\beta} \mid \mathbf{y}) \] <p>Note that contrary to the linear regression, which used a Gaussian/normal likelihood function, we don&#39;t have an error parameter \(\sigma\) in our logistic regression. This is due to neither the Bernoulli nor binomial distributions having a &quot;scale&quot; parameter such as the \(\sigma\) parameter in the Gaussian/normal distribution.</p> <p>Also note that the Bernoulli distribution is a special case of the binomial distribution where \(n = 1\):</p> \[ \text{Bernoulli}(p) = \text{Binomial}(1, p) \] <p>This is easily accomplished with Turing:</p> <pre><code class=language-julia >using Turing
+using LazyArrays
+using Random:seed&#33;
+seed&#33;&#40;123&#41;
+
+@model logreg&#40;X,  y; predictors&#61;size&#40;X, 2&#41;&#41; &#61; begin
+    #priors
+    α ~ Normal&#40;0, 2.5&#41;
+    β ~ filldist&#40;TDist&#40;3&#41;, predictors&#41;
+
+    #likelihood
+    y ~ arraydist&#40;LazyArray&#40;@~ BernoulliLogit.&#40;α .&#43; X * β&#41;&#41;&#41;
+end;</code></pre> <p>Here I am specifying very weakly informative priors:</p> <ul> <li><p>\(\alpha \sim \text{Normal}(0, 2.5)\) – This means a normal distribution centered on 0 with a standard deviation of 2.5. That prior should with ease cover all possible values of \(\alpha\). Remember that the normal distribution has support over all the real number line \(\in (-\infty, +\infty)\).</p> <li><p>\(\boldsymbol{\beta} \sim \text{Student-}t(0,1,3)\) – The predictors all have a prior distribution of a Student-\(t\) distribution centered on 0 with variance 1 and degrees of freedom \(\nu = 3\). That wide-tailed \(t\) distribution will cover all possible values for our coefficients. Remember the Student-\(t\) also has support over all the real number line \(\in (-\infty, +\infty)\). Also the <code>filldist&#40;&#41;</code> is a nice Turing&#39;s function which takes any univariate or multivariate distribution and returns another distribution that repeats the input distribution.</p> </ul> <p>Turing&#39;s <code>arraydist&#40;&#41;</code> function wraps an array of distributions returning a new distribution sampling from the individual distributions. And the LazyArrays&#39; <code>LazyArray&#40;&#41;</code> constructor wrap a lazy object that wraps a computation producing an array to an array. Last, but not least, the macro <code>@~</code> creates a broadcast and is a nice short hand for the familiar dot <code>.</code> broadcasting operator in Julia. This is an efficient way to tell Turing that our <code>y</code> vector is distributed lazily as a <code>BernoulliLogit</code> broadcasted to <code>α</code> added to the product of the data matrix <code>X</code> and <code>β</code> coefficient vector.</p> <p>If your dependent variable <code>y</code> is continuous and represents the number of successes of \(n\) independent Bernoulli trials you can use the binomial likelihood in your model:</p> <pre><code class=language-julia >y ~ arraydist&#40;LazyArray&#40;@~ BinomialLogit.&#40;n, α .&#43; X * β&#41;&#41;&#41;</code></pre>
+<h2 id=example_-_contaminated_water_wells ><a href="#example_-_contaminated_water_wells" class=header-anchor >Example - Contaminated Water Wells</a></h2>
+<p>For our example, I will use a famous dataset called <code>wells</code> &#40;Gelman &amp; Hill, 2007&#41;, which is data from a survey of 3,200 residents in a small area of Bangladesh suffering from arsenic contamination of groundwater. Respondents with elevated arsenic levels in their wells had been encouraged to switch their water source to a safe public or private well in the nearby area and the survey was conducted several years later to learn which of the affected residents had switched wells. It has 3,200 observations and the following variables:</p>
+<ul>
+<li><p><code>switch</code> – binary/dummy &#40;0 or 1&#41; for well-switching.</p>
+
+<li><p><code>arsenic</code> – arsenic level in respondent&#39;s well.</p>
+
+<li><p><code>dist</code> – distance &#40;meters&#41; from the respondent&#39;s house to the nearest well with safe drinking water.</p>
+
+<li><p><code>association</code> – binary/dummy &#40;0 or 1&#41; if member&#40;s&#41; of household participate in community organizations.</p>
+
+<li><p><code>educ</code> – years of education &#40;head of household&#41;.</p>
+
+</ul>
+<p>Ok let&#39;s read our data with <code>CSV.jl</code> and output into a <code>DataFrame</code> from <code>DataFrames.jl</code>:</p>
+<pre><code class=language-julia >using DataFrames, CSV, HTTP
+
+url &#61; &quot;https://raw.githubusercontent.com/storopoli/Bayesian-Julia/master/datasets/wells.csv&quot;
+wells &#61; CSV.read&#40;HTTP.get&#40;url&#41;.body, DataFrame&#41;
+describe&#40;wells&#41;</code></pre><pre><code class="plaintext code-output">5×7 DataFrame
+ Row │ variable  mean       min    median   max      nmissing  eltype
+     │ Symbol    Float64    Real   Float64  Real     Int64     DataType
+─────┼──────────────────────────────────────────────────────────────────
+   1 │ switch     0.575166  0       1.0       1             0  Int64
+   2 │ arsenic    1.65693   0.51    1.3       9.65          0  Float64
+   3 │ dist      48.3319    0.387  36.7615  339.531         0  Float64
+   4 │ assoc      0.422848  0       0.0       1             0  Int64
+   5 │ educ       4.82848   0       5.0      17             0  Int64</code></pre>
+<p>As you can see from the <code>describe&#40;&#41;</code> output 58&#37; of the respondents switched wells and 42&#37; percent of respondents somehow are engaged in community organizations. The average years of education of the household&#39;s head is approximate 5 years and ranges from 0 &#40;no education at all&#41; to 17 years. The distance to safe drinking water is measured in meters and averages 48m ranging from less than 1m to 339m. Regarding arsenic levels I cannot comment because the only thing I know that it is toxic and you probably would never want to have your well contaminated with it. Here, we believe that all of those variables somehow influence the probability of a respondent switch to a safe well.</p>
+<p>Now let&#39;s us instantiate our model with the data:</p>
+<pre><code class=language-julia >X &#61; Matrix&#40;select&#40;wells, Not&#40;:switch&#41;&#41;&#41;
+y &#61; wells&#91;:, :switch&#93;
+model &#61; logreg&#40;X, y&#41;;</code></pre>
+<p>And, finally, we will sample from the Turing model. We will be using the default <code>NUTS&#40;&#41;</code> sampler with <code>2_000</code> samples, with 4 Markov chains using multiple threads <code>MCMCThreads&#40;&#41;</code>:</p>
+<pre><code class=language-julia >chain &#61; sample&#40;model, NUTS&#40;&#41;, MCMCThreads&#40;&#41;, 2_000, 4&#41;
+summarystats&#40;chain&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse         ess      rhat   ess_per_sec
+      Symbol   Float64   Float64    Float64   Float64     Float64   Float64       Float64
+
+           α   -0.1569    0.1002     0.0011    0.0017   3712.1046    1.0007       36.0924
+        β[1]    0.4675    0.0422     0.0005    0.0007   4442.5843    1.0005       43.1948
+        β[2]   -0.0090    0.0011     0.0000    0.0000   8773.4133    0.9999       85.3030
+        β[3]   -0.1228    0.0769     0.0009    0.0010   5553.5907    1.0000       53.9970
+        β[4]    0.0425    0.0095     0.0001    0.0001   4950.7683    0.9999       48.1358
+</code></pre>
+<p>We had no problem with the Markov chains as all the <code>rhat</code> are well below <code>1.01</code> &#40;or above <code>0.99</code>&#41;. Note that the coefficients are in log-odds scale. They are the natural log of the odds<sup id="fnref:logit"><a href="#fndef:logit" class=fnref >[1]</a></sup>, and odds is defined as:</p>
+\[ \text{odds} = \frac{p}{1-p} \]
+<p>where \(p\) is a probability. So log-odds is defined as:</p>
+\[ \log(\text{odds}) = \log \left( \frac{p}{1-x} \right) \]
+<p>So in order to get odds from a log-odds we must undo the log operation with a exponentiation. This translates to:</p>
+\[ \text{odds} = \exp ( \log ( \text{odds} )) \]
+<p>We can do this with a transformation in a <code>DataFrame</code> constructed from a <code>Chains</code> object:</p>
+<pre><code class=language-julia >using Chain
+
+@chain quantile&#40;chain&#41; begin
+    DataFrame
+    select&#40;_,
+        :parameters,
+        names&#40;_, r&quot;&#37;&quot;&#41; .&#61;&gt; ByRow&#40;exp&#41;,
+        renamecols&#61;false&#41;
+end</code></pre><pre><code class="plaintext code-output">5×6 DataFrame
+ Row │ parameters  2.5%      25.0%     50.0%     75.0%     97.5%
+     │ Symbol      Float64   Float64   Float64   Float64   Float64
+─────┼──────────────────────────────────────────────────────────────
+   1 │ α           0.70423   0.797942  0.854063  0.914947  1.04369
+   2 │ β[1]        1.46993   1.55034   1.59556   1.6432    1.73275
+   3 │ β[2]        0.989     0.990344  0.991067  0.991769  0.993081
+   4 │ β[3]        0.760615  0.840585  0.88351   0.930539  1.03072
+   5 │ β[4]        1.02454   1.03672   1.04339   1.05008   1.0627</code></pre>
+<p>Our interpretation of odds is the same as in betting games. Anything below 1 signals a unlikely probability that \(y\) will be \(1\). And anything above 1 increases the probability of \(y\) being \(1\), while 1 itself is a neutral odds for \(y\) being either \(1\) or \(0\). Since I am not a gambling man, let&#39;s talk about probabilities. So I will create a function called <code>logodds2prob&#40;&#41;</code> that converts log-odds to probabilities:</p>
+<pre><code class=language-julia >function logodds2prob&#40;logodds::Float64&#41;
+    return exp&#40;logodds&#41; / &#40;1 &#43; exp&#40;logodds&#41;&#41;
+end
+
+@chain quantile&#40;chain&#41; begin
+    DataFrame
+    select&#40;_,
+        :parameters,
+        names&#40;_, r&quot;&#37;&quot;&#41; .&#61;&gt; ByRow&#40;logodds2prob&#41;,
+        renamecols&#61;false&#41;
+end</code></pre><pre><code class="plaintext code-output">5×6 DataFrame
+ Row │ parameters  2.5%      25.0%     50.0%     75.0%     97.5%
+     │ Symbol      Float64   Float64   Float64   Float64   Float64
+─────┼──────────────────────────────────────────────────────────────
+   1 │ α           0.413225  0.443809  0.460644  0.477792  0.510689
+   2 │ β[1]        0.59513   0.607895  0.614726  0.621671  0.634068
+   3 │ β[2]        0.497235  0.497574  0.497757  0.497934  0.498264
+   4 │ β[3]        0.432017  0.456695  0.469076  0.48201   0.507563
+   5 │ β[4]        0.506061  0.509014  0.510617  0.512215  0.515199</code></pre>
+<p>There you go, much better now. Let&#39;s analyze our results. The intercept <code>α</code> is the basal <code>switch</code> probability which has a median value of 46&#37;. All coefficients whose 95&#37; credible intervals captures the value \(\frac{1}{2} = 0.5\) tells that the effect on the propensity of <code>switch</code> is inconclusive. It is pretty much similar to a 95&#37; credible interval that captures the 0 in the linear regression coefficients. So this rules out <code>β&#91;3&#93;</code> which is the third column of <code>X</code> – <code>assoc</code>. The other remaining 95&#37; credible intervals can be interpreted as follows:</p>
+<ul>
+<li><p><code>β&#91;1&#93;</code> – first column of <code>X</code>, <code>arsenic</code>, has 95&#37; credible interval 0.595 to 0.634. This means that each increase in one unit of <code>arsenic</code> is related to an increase of 9.6&#37; to 13.4&#37; propension of <code>switch</code> being 1.</p>
+
+<li><p><code>β&#91;2&#93;</code> – second column of <code>X</code>, <code>dist</code>, has a 95&#37; credible interval from 0.497 to 0.498. So we expect that each increase in one meter of <code>dist</code> is related to a decrease of 0.1&#37; propension of <code>switch</code> being 0.</p>
+
+<li><p><code>β&#91;4&#93;</code> – fourth column of <code>X</code>, <code>educ</code>, has a 95&#37; credible interval from 0.506 to 0.515. Each increase in one year of <code>educ</code> is related to an increase of 0.6&#37; to 1.5&#37; propension of <code>switch</code> being 1.</p>
+
+</ul>
+<p>That&#39;s how you interpret 95&#37; credible intervals from a <code>quantile&#40;&#41;</code> output of a logistic regression <code>Chains</code> object converted from log-odds to probability.</p>
+<h2 id=footnotes ><a href="#footnotes" class=header-anchor >Footnotes</a></h2>
+<table class=fndef  id="fndef:logit">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:logit">[1]</a>
+        <td class=fndef-content >actually the <a href="https://en.wikipedia.org/wiki/Logit">logit</a> function or the log-odds is the logarithm of the odds \(\frac{p}{1-p}\) where \(p\) is a probability.
+    
+</table>
+
+<h2 id=references ><a href="#references" class=header-anchor >References</a></h2>
+<p>Gelman, A., &amp; Hill, J. &#40;2007&#41;. Data analysis using regression and multilevel/hierarchical models. Cambridge university press.</p>
+
+<div class=page-foot >
+  <div class=copyright >
+    Last modified: August 24, 2021. Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+  </div>
+</div>
+</div>
+    </div> 
+    </div> 
+    </div> <!-- end of class page-wrap-->
+    
+      <script src="/Bayesian-Julia/libs/katex/katex.min.js"></script>
+<script src="/Bayesian-Julia/libs/katex/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+      <script src="/Bayesian-Julia/libs/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();hljs.configure({tabReplace: '    '});</script>

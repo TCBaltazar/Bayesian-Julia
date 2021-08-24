@@ -1,0 +1,410 @@
+<!doctype html> <html lang=en > <meta charset=UTF-8 > <meta name=viewport  content="width=device-width, initial-scale=1"> <link rel=stylesheet  href="/Bayesian-Julia/libs/katex/katex.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/libs/highlight/github.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/css/jtd.css"> <link rel=icon  href="/Bayesian-Julia/assets/favicon.ico"> <title>Why Julia?</title> <div class=page-wrap > <div class=side-bar > <div class=header > <a href="/Bayesian-Julia/" class=title > Bayesian Stats </a> </div> <label for=show-menu  class=show-menu >MENU</label> <input type=checkbox  id=show-menu  role=button > <div class=menu  id=side-menu > <ul class=menu-list > <li class="menu-list-item "><a href="/Bayesian-Julia/" class="menu-list-link ">Home</a> <li class="menu-list-item active"><a href="/Bayesian-Julia/pages/1_why_Julia/" class="menu-list-link active">1. Why Julia?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/2_bayes_stats/" class="menu-list-link ">2. What is Bayesian Statistics?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/3_prob_dist/" class="menu-list-link ">3. Common Probability Distributions</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/4_Turing/" class="menu-list-link ">4. How to use Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/5_MCMC/" class="menu-list-link ">5. Markov Chain Monte Carlo (MCMC)</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/6_linear_reg/" class="menu-list-link ">6. Bayesian Linear Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/7_logistic_reg/" class="menu-list-link ">7. Bayesian Logistic Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/8_count_reg/" class="menu-list-link ">8. Bayesian Regression with Count Data</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/9_robust_reg/" class="menu-list-link ">9. Robust Bayesian Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/10_multilevel_models/" class="menu-list-link ">10. Multilevel Models</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/11_Turing_tricks/" class="menu-list-link ">11. Computational Tricks with Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/12_epi_models/" class="menu-list-link ">12. Bayesian Epidemiological Models</a> </ul> </div> <div class=footer > <a href="https://www.julialang.org"><img style="height:50px;padding-left:10px;margin-bottom:15px;" src="https://julialang.org/assets/infra/logo.svg" alt="Julia Logo"></a> </div> </div> <div class=main-content-wrap > <div class=main-content > <div class=main-header > <a id=github  href="https://github.com/storopoli/Bayesian-Julia">Code on GitHub</a> </div> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-186284914-6"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-186284914-6'); </script> <div class=franklin-content ><div class=franklin-toc ><ol><li><a href="#speed">Speed</a><li><a href="#ease_of_use">Ease of Use</a><li><a href="#multiple_dispatch">Multiple Dispatch</a><ol><li><a href="#example_dogs_and_cats">Example: Dogs and Cats</a><li><a href="#example_one-hot_vector">Example: One-hot Vector</a></ol><li><a href="#julia_the_right_approach">Julia: the right approach</a><li><a href="#footnotes">Footnotes</a><li><a href="#references">References</a></ol></div> <h1 id=why_julia ><a href="#why_julia" class=header-anchor >Why Julia?</a></h1> <p><a href="https://www.julialang.org">Julia</a> &#40;Bezanson, Edelman, Karpinski &amp; Shah, 2017&#41; is a relatively new language, first released in 2012, aims to be both <strong>high-level</strong> and <strong>fast</strong>. Julia is a fast dynamic-typed language that just-in-time &#40;JIT&#41; compiles into native code using LLVM. It <a href="https://www.nature.com/articles/d41586-019-02310-3">&quot;runs like C but reads like Python&quot;</a>, meaning that is <em>blazing</em> fast, easy to prototype and read/write code. It is <strong>multi-paradigm</strong>, combining features of imperative, functional, and object-oriented programming.</p> <p><strong>Why was Julia created?</strong> Definitely read this now impressively <a href="https://julialang.org/blog/2012/02/why-we-created-julia/">old post by Julia founders</a>. Here is a clarifying quote:</p> <blockquote> <p>We want the speed of C with the dynamism of Ruby. We want a language that&#39;s homoiconic, with true macros like Lisp, but with obvious, familiar mathematical notation like Matlab. We want something as usable for general programming as Python, as easy for statistics as R, as natural for string processing as Perl, as powerful for linear algebra as Matlab, as good at gluing programs together as the shell. Something that is dirt simple to learn, yet keeps the most serious hackers happy. We want it interactive and we want it compiled.</p> </blockquote> <p><strong>Why this needs to be an extra language?</strong> Why cannot Python &#40;or R&#41; be made that fast for instance? See the official compact answer to this in the <a href="https://docs.julialang.org/en/v1/manual/faq/#Why-don&#39;t-you-compile-Matlab/Python/R/&#37;E2&#37;80&#37;A6-code-to-Julia?">Julia manual FAQ</a>:</p> <blockquote> <p>The basic issue is that there is nothing special about Julia&#39;s compiler: we use a commonplace compiler &#40;LLVM&#41; with no &quot;secret sauce&quot; that other language developers don&#39;t know about. Julia&#39;s performance advantage derives almost entirely from its front-end: its language semantics allow a well-written Julia program to give more opportunities to the compiler to generate efficient code and memory layouts. If you tried to compile Matlab or Python code to Julia, our compiler would be limited by the semantics of Matlab or Python to producing code no better than that of existing compilers for those languages &#40;and probably worse&#41;.</p> <p>Julia&#39;s advantage is that good performance is not limited to a small subset of &quot;built-in&quot; types and operations, and one can write high-level type-generic code that works on arbitrary user-defined types while remaining fast and memory-efficient. Types in languages like Python simply don&#39;t provide enough information to the compiler for similar capabilities, so as soon as you used those languages as a Julia front-end you would be stuck.</p> </blockquote> <p>These are the &quot;official&quot; answers from the Julia community. Now let me share with you my opinion. From my point-of-view Julia has <strong>three main features that makes it a unique language to work with</strong>, specially in scientific computing:</p> <ul> <li><p><strong>Speed</strong></p> <li><p><strong>Ease of Use</strong></p> <li><p><strong>Multiple Dispatch</strong></p> </ul> <p>Now let&#39;s dive into each one of those three features.</p> <h2 id=speed ><a href="#speed" class=header-anchor >Speed</a></h2> <p>Yes, Julia is <strong>fast</strong>. <strong>Very fast&#33;</strong> It was made for speed from the drawing board. It bypass any sort of intermediate representation and translate code into machine native code using LLVM compiler. Comparing this with R, that uses either FORTRAN or C, or Python, that uses CPython; and you&#39;ll clearly see that Julia has a major speed advantage over other languages that are common in data science and statistics. Julia exposes the machine code to LLVM&#39;s compiler which in turn can optimize code as it wishes, like a good compiler such as LLVM excels in.</p> <p>One notable example: NASA uses Julia to analyze the &quot;<a href="https://exoplanets.nasa.gov/news/1669/seven-rocky-trappist-1-planets-may-be-made-of-similar-stuff/">Largest Batch of Earth-Sized Planets Ever Found</a>&quot;. Also, you can find <a href="https://julialang.org/benchmarks/">benchmarks</a> for a range of common code patterns, such as function calls, string parsing, sorting, numerical loops, random number generation, recursion, and array operations using Julia and also several other languages such as C, Rust, Go, JavaScript, R, Python, Fortran and Java. The figure below was taken from <a href="https://julialang.org/benchmarks/">Julia&#39;s website</a>. As you can see Julia is <strong>indeed</strong> fast:</p> <p><img src="/Bayesian-Julia/pages/images/benchmarks.svg" alt="Common Benchmarks" /></p> <p><div class=text-center ><em>Common Benchmarks</em></div> <br/></p> <p>Let me demonstrate how fast Julia is. Here is a simple &quot;groupby&quot; operation using random stuff to emulate common data analysis &quot;split-apply-combine&quot; operations in three languages<sup id="fnref:updatedversion"><a href="#fndef:updatedversion" class=fnref >[1]</a></sup> :</p> <ul> <li><p>Julia: using <a href="https://dataframes.juliadata.org/stable/"><code>DataFrames.jl</code></a> - 0.4ms</p> <li><p>Python: using <code>Pandas</code> and <code>NumPy</code> - 1.76ms</p> <li><p>R: using <code>&#123;dplyr&#125;</code> - 3.22ms</p> </ul> <p>Here is Julia:</p> <pre><code class=language-julia >using Random, StatsBase, DataFrames, BenchmarkTools, Chain
+Random.seed&#33;&#40;123&#41;
+
+n &#61; 10_000
+
+df &#61; DataFrame&#40;
+    x&#61;sample&#40;&#91;&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;&#93;, n, replace&#61;true&#41;,
+    y&#61;rand&#40;n&#41;,
+    z&#61;randn&#40;n&#41;,
+&#41;
+
+@btime @chain &#36;df begin  # passing &#96;df&#96; as reference so the compiler cannot optimize
+    groupby&#40;:x&#41;
+    combine&#40;:y &#61;&gt; median, :z &#61;&gt; mean&#41;
+end</code></pre> <p>Here is Python:</p> <pre><code class=language-python >import pandas as pd
+import numpy as np
+
+n &#61; 10000
+
+df &#61; pd.DataFrame&#40;&#123;&#39;x&#39;: np.random.choice&#40;&#91;&#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;&#93;, n, replace&#61;True&#41;,
+                   &#39;y&#39;: np.random.randn&#40;n&#41;,
+                   &#39;z&#39;: np.random.rand&#40;n&#41;&#125;&#41;
+
+&#37;timeit df.groupby&#40;&#39;x&#39;&#41;.agg&#40;&#123;&#39;y&#39;: &#39;median&#39;, &#39;z&#39;: &#39;mean&#39;&#125;&#41;</code></pre> <p>Here is R:</p> <pre><code class=language-r >library&#40;dplyr&#41;
+
+n &lt;- 10e3
+df &lt;- tibble&#40;
+    x &#61; sample&#40;c&#40;&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;&#41;, n, replace &#61; TRUE&#41;,
+    y &#61; runif&#40;n&#41;,
+    z &#61; rnorm&#40;n&#41;
+&#41;
+
+bench::mark&#40;
+    df &#37;&gt;&#37;
+        group_by&#40;x&#41; &#37;&gt;&#37;
+        summarize&#40;
+            median&#40;y&#41;,
+            mean&#40;z&#41;
+        &#41;
+&#41;</code></pre> <p>So clearly <strong>Julia is the winner here</strong>, being <strong>4x faster than Python</strong> and almost <strong>10x faster than R</strong>. Also note that <code>Pandas</code> &#40;along with <code>NumPy</code>&#41; and <code>&#123;dplyr&#125;</code> are all written in C or C&#43;&#43;. Additionally, I didn&#39;t let Julia cheat by allowing the compiler optimize for <code>df</code> by passing a reference <code>&#36;df</code>. So, I guess this is a fair comparison.</p> <h2 id=ease_of_use ><a href="#ease_of_use" class=header-anchor >Ease of Use</a></h2> <p>What is most striking that Julia can be as fast as C &#40;and faster than Java in some applications&#41; while <strong>having a very simple and intelligible syntax</strong>. This feature along with its speed is what Julia creators denote as <strong>&quot;the two language problem&quot;</strong> that Julia address. The <strong>&quot;two language problem&quot; is a very typical situation in scientific computing</strong> where a researcher or computer scientist devises an algorithm or a solution that he or she prototypes in an easy to code language &#40;like Python&#41; and, if it works, he or she would code in a fast language that is not easy to code &#40;C or FORTRAN&#41;. Thus, we have two languages involved in the process of of developing a new solution. One which is easy to prototype but is not suited for implementation &#40;mostly due to being slow&#41;. And another one which is not so easy to code &#40;and, consequently, not easy to prototype&#41; but suited for implementation &#40;mostly because it is fast&#41;. Julia comes to <strong>eliminate such situations</strong> by being the <strong>same language</strong> that you <strong>prototype</strong> &#40;ease of use&#41; and <strong>implement the solution</strong> &#40;speed&#41;.</p> <p>Also, Julia lets you use <strong>unicode characters as variables or parameters</strong>. This means no more using <code>sigma</code> or <code>sigma_i</code>, and instead just use <code>σ</code> or <code>σᵢ</code> as you would in mathematical notation. When you see code for an algorithm or for a mathematical equation you see a <strong>one-to-one relation to code and math</strong>. This is a <strong>powerful</strong> feature.</p> <p>I think that the &quot;two language problem&quot; and the one-to-one code and math relation are best described by one of the creators of Julia, Alan Edelman, in a <strong>TED Talk</strong> &#40;see the video below&#41;:</p> <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube.com/embed/qGW0GT1rCvs' frameborder='0' allowfullscreen></iframe></div> <p>I will try to exemplify what would be the &quot;two language problem&quot; by showing you how I would code a simple <a href="https://en.wikipedia.org/wiki/Metropolis&#37;E2&#37;80&#37;93Hastings_algorithm"><strong>Metropolis algorithm</strong></a> for a <strong>bivariate normal distribution</strong>. I would mostly prototype it in a dynamically-typed language such as R or Python. Then, deploy the algorithm using a fast but hard to code language such as C&#43;&#43;. This is exactly what I&#39;ll do now. The algorithm will be coded in <strong>Julia</strong>, <strong>R</strong>, <strong>C&#43;&#43;</strong> and <a href="https://mc-stan.org"><strong><code>Stan</code></strong></a>. There are two caveats. First, I am coding the <strong>original 1950s Metropolis version</strong>, not the <strong>1970s Metropolis-Hastings</strong>, which implies <strong>symmetrical proposal distributions</strong> just for the sake of the example. Second, the proposals are based on a <strong>uniform distribution</strong> on the current proposal values of the proposal values ± a certain <code>width</code>.</p> <p>Let&#39;s start with <strong>Julia</strong> which uses the <a href="https://juliastats.org/Distributions.jl/stable/"><code>Distributions.jl</code></a> package for its probabilistic distributions along with <code>logpdf&#40;&#41;</code> defined methods for all of the distributions.</p> <pre><code class=language-julia >using Distributions
+function metropolis&#40;S::Int64, width::Float64, ρ::Float64;
+                    μ_x::Float64&#61;0.0, μ_y::Float64&#61;0.0,
+                    σ_x::Float64&#61;1.0, σ_y::Float64&#61;1.0&#41;
+    binormal &#61; MvNormal&#40;&#91;μ_x; μ_y&#93;, &#91;σ_x ρ; ρ σ_y&#93;&#41;;
+    draws &#61; Matrix&#123;Float64&#125;&#40;undef, S, 2&#41;;
+    x &#61; randn&#40;&#41;; y &#61; randn&#40;&#41;;
+    accepted &#61; 0::Int64;
+    for s in 1:S
+        x_ &#61; rand&#40;Uniform&#40;x - width, x &#43; width&#41;&#41;;
+        y_ &#61; rand&#40;Uniform&#40;y - width, y &#43; width&#41;&#41;;
+        r &#61; exp&#40;logpdf&#40;binormal, &#91;x_, y_&#93;&#41; - logpdf&#40;binormal, &#91;x, y&#93;&#41;&#41;;
+
+        if r &gt; rand&#40;Uniform&#40;&#41;&#41;
+            x &#61; x_;
+            y &#61; y_;
+            accepted &#43;&#61; 1;
+        end
+        @inbounds draws&#91;s, :&#93; &#61; &#91;x y&#93;;
+    end
+    println&#40;&quot;Acceptance rate is &#36;&#40;accepted / S&#41;&quot;&#41;
+    return draws
+end</code></pre> <p>Now let&#39;s go to the <strong>R version</strong> &#40;from now on no more fancy names like <code>μ</code> or <code>σ</code> 😭&#41;. Since this is a bivariate normal I am using the package <a href="https://cran.r-project.org/web/packages/mnormt/index.html"><code>&#123;mnormt&#125;</code></a> which allows for very fast &#40;FORTRAN code&#41; computation of multivariate normal distributions&#39; pdf and logpdf.</p> <pre><code class=language-r >metropolis &lt;- function&#40;S, width,
+                       mu_X &#61; 0, mu_Y &#61; 0,
+                       sigma_X &#61; 1, sigma_Y &#61; 1,
+                       rho&#41; &#123;
+   Sigma &lt;- diag&#40;2&#41;
+   Sigma&#91;1, 2&#93; &lt;- rho
+   Sigma&#91;2, 1&#93; &lt;- rho
+   draws &lt;- matrix&#40;nrow &#61; S, ncol &#61; 2&#41;
+   x &lt;- rnorm&#40;1&#41;
+   y &lt;- rnorm&#40;1&#41;
+   accepted &lt;- 0
+   for &#40;s in 1:S&#41; &#123;
+      x_ &lt;- runif&#40;1, x - width, x &#43; width&#41;
+      y_ &lt;- runif&#40;1, y - width, y &#43; width&#41;
+      r &lt;- exp&#40;mnormt::dmnorm&#40;c&#40;x_, y_&#41;, mean &#61; c&#40;mu_X, mu_Y&#41;, varcov &#61; Sigma, log &#61; TRUE&#41; -
+                        mnormt::dmnorm&#40;c&#40;x, y&#41;, mean &#61; c&#40;mu_X, mu_Y&#41;, varcov &#61; Sigma, log &#61; TRUE&#41;&#41;
+      if &#40;r &gt; runif&#40;1, 0, 1&#41;&#41; &#123;
+        x &lt;- x_
+        y &lt;- y_
+        accepted &lt;- accepted &#43; 1
+      &#125;
+      draws&#91;s, 1&#93; &lt;- x
+      draws&#91;s, 2&#93; &lt;- y
+   &#125;
+   print&#40;paste0&#40;&quot;Acceptance rate is &quot;, accepted / S&#41;&#41;
+   return&#40;draws&#41;
+&#125;</code></pre> <p>Now <strong>C&#43;&#43;</strong>. Here I am using the <a href="https://eigen.tuxfamily.org/"><code>Eigen</code></a> library. Note that, since C&#43;&#43; is a very powerful language to be used as &quot;close to the metal&quot; as possible, I don&#39;t have any convenient predefined multivariate normal to use. So I will have to create this from zero<sup id="fnref:mvnimplem"><a href="#fndef:mvnimplem" class=fnref >[2]</a></sup>. Ok, be <strong>ready</strong>&#33; This is a mouthful:</p> <pre><code class=language-cpp >#include &lt;Eigen/Eigen&gt;
+#include &lt;cmath&gt;
+#include &lt;iostream&gt;
+#include &lt;random&gt;
+
+using std::cout;
+std::random_device rd&#123;&#125;;
+std::mt19937 gen&#123;rd&#40;&#41;&#125;;
+
+// Random Number Generator Stuff
+double random_normal&#40;double mean &#61; 0, double std &#61; 1&#41; &#123;
+  std::normal_distribution&lt;double&gt; d&#123;mean, std&#125;;
+  return d&#40;gen&#41;;
+&#125;;
+
+double random_unif&#40;double min &#61; 0, double max &#61; 1&#41; &#123;
+  std::uniform_real_distribution&lt;double&gt; d&#123;min, max&#125;;
+  return d&#40;gen&#41;;
+&#125;;
+
+// Multivariate Normal
+struct Mvn &#123;
+  Mvn&#40;const Eigen::VectorXd &amp;mu, const Eigen::MatrixXd &amp;s&#41;
+      : mean&#40;mu&#41;, sigma&#40;s&#41; &#123;&#125;
+  double pdf&#40;const Eigen::VectorXd &amp;x&#41; const;
+  double lpdf&#40;const Eigen::VectorXd &amp;x&#41; const;
+  Eigen::VectorXd mean;
+  Eigen::MatrixXd sigma;
+&#125;;
+
+double Mvn::pdf&#40;const Eigen::VectorXd &amp;x&#41; const &#123;
+  double n &#61; x.rows&#40;&#41;;
+  double sqrt2pi &#61; std::sqrt&#40;2 * M_PI&#41;;
+  double quadform &#61; &#40;x - mean&#41;.transpose&#40;&#41; * sigma.inverse&#40;&#41; * &#40;x - mean&#41;;
+  double norm &#61; std::pow&#40;sqrt2pi, -n&#41; * std::pow&#40;sigma.determinant&#40;&#41;, -0.5&#41;;
+
+  return norm * exp&#40;-0.5 * quadform&#41;;
+&#125;
+
+double Mvn::lpdf&#40;const Eigen::VectorXd &amp;x&#41; const &#123;
+  double n &#61; x.rows&#40;&#41;;
+  double sqrt2pi &#61; std::sqrt&#40;2 * M_PI&#41;;
+  double quadform &#61; &#40;x - mean&#41;.transpose&#40;&#41; * sigma.inverse&#40;&#41; * &#40;x - mean&#41;;
+  double norm &#61; std::pow&#40;sqrt2pi, -n&#41; * std::pow&#40;sigma.determinant&#40;&#41;, -0.5&#41;;
+
+  return log&#40;norm&#41; &#43; &#40;-0.5 * quadform&#41;;
+&#125;
+
+Eigen::MatrixXd metropolis&#40;int S, double width, double mu_X &#61; 0,
+                                 double mu_Y &#61; 0, double sigma_X &#61; 1,
+                                 double sigma_Y &#61; 1, double rho &#61; 0.8&#41; &#123;
+  Eigen::MatrixXd sigma&#40;2, 2&#41;;
+  sigma &lt;&lt; sigma_X, rho, rho, sigma_Y;
+  Eigen::VectorXd mean&#40;2&#41;;
+  mean &lt;&lt; mu_X, mu_Y;
+  Mvn binormal&#40;mean, sigma&#41;;
+
+  Eigen::MatrixXd out&#40;S, 2&#41;;
+  double x &#61; random_normal&#40;&#41;;
+  double y &#61; random_normal&#40;&#41;;
+  double accepted &#61; 0;
+  for &#40;size_t i &#61; 0; i &lt; S - 1; i&#43;&#43;&#41; &#123;
+    double xmw &#61; x - width;
+    double xpw &#61; x &#43; width;
+    double ymw &#61; y - width;
+    double ypw &#61; y &#43; width;
+
+    double x_ &#61; random_unif&#40;xmw, xpw&#41;;
+    double y_ &#61; random_unif&#40;ymw, ypw&#41;;
+
+    double r &#61; std::exp&#40;binormal.lpdf&#40;Eigen::Vector2d&#40;x_, y_&#41;&#41; -
+                        binormal.lpdf&#40;Eigen::Vector2d&#40;x, y&#41;&#41;&#41;;
+    if &#40;r &gt; random_unif&#40;&#41;&#41; &#123;
+      x &#61; x_;
+      y &#61; y_;
+      accepted&#43;&#43;;
+    &#125;
+    out&#40;i, 0&#41; &#61; x;
+    out&#40;i, 1&#41; &#61; y;
+  &#125;
+  cout &lt;&lt; &quot;Acceptance rate is &quot; &lt;&lt; accepted / S &lt;&lt; &#39;\n&#39;;
+
+  return out;
+&#125;</code></pre> <p>note that the <a href="https://en.wikipedia.org/wiki/Multivariate_normal_distribution">PDF for a multivariate normal</a> is:</p> <a id=mvnpdf  class=anchor ></a>\[ \text{PDF}(\boldsymbol{\mu}, \boldsymbol{\Sigma}) = (2\pi)^{-{\frac{k}{2}}}\det({\boldsymbol{\Sigma}})^{-{\frac {1}{2}}}e^{-{\frac{1}{2}}(\mathbf{x}-{\boldsymbol{\mu}})^{T}{\boldsymbol{\Sigma }}^{-1}(\mathbf{x} -{\boldsymbol{\mu}})} , \] <p>where \(\boldsymbol{\mu}\) is a vector of means, \(k\) is the number of dimensions, \(\boldsymbol{\Sigma}\) is a covariance matrix, \(\det\) is the determinant and \(\mathbf{x}\) is a vector of values that the PDF is evaluted for.</p> <p><strong>SPOILER ALERT</strong>: Julia will beat this C&#43;&#43; Eigen implementation by being almost 100x faster. So I will try to <em>help</em> C&#43;&#43; beat Julia &#40;😂&#41; by making a bivariate normal class <code>BiNormal</code> in order to avoid the expensive operation of inverting a covariance matrix and computing determinants in every logpdf proposal evaluation. Also since we are not doing linear algebra computations I&#39;ve removed Eigen and used C&#43;&#43; STL&#39;s <code>&lt;vector&gt;</code>:</p> <pre><code class=language-cpp >#define M_PI 3.14159265358979323846 /* pi */
+
+// Bivariate Normal
+struct BiNormal &#123;
+  BiNormal&#40;const std::vector&lt;double&gt; &amp;mu, const double &amp;rho&#41;
+      : mean&#40;mu&#41;, rho&#40;rho&#41; &#123;&#125;
+  double pdf&#40;const std::vector&lt;double&gt; &amp;x&#41; const;
+  double lpdf&#40;const std::vector&lt;double&gt; &amp;x&#41; const;
+  std::vector&lt;double&gt; mean;
+  double rho;
+&#125;;
+
+double BiNormal::pdf&#40;const std::vector&lt;double&gt; &amp;x&#41; const &#123;
+  double x_ &#61; x&#91;0&#93;;
+  double y_ &#61; x&#91;1&#93;;
+  return std::exp&#40;-&#40;&#40;std::pow&#40;x_, 2&#41; - &#40;2 * rho * x_ * y_&#41; &#43; std::pow&#40;y_, 2&#41;&#41; /
+                    &#40;2 * &#40;1 - std::pow&#40;rho, 2&#41;&#41;&#41;&#41;&#41; /
+         &#40;2 * M_PI * std::sqrt&#40;1 - std::pow&#40;rho, 2&#41;&#41;&#41;;
+&#125;
+
+double BiNormal::lpdf&#40;const std::vector&lt;double&gt; &amp;x&#41; const &#123;
+  double x_ &#61; x&#91;0&#93;;
+  double y_ &#61; x&#91;1&#93;;
+  return &#40;-&#40;&#40;std::pow&#40;x_, 2&#41; - &#40;2 * rho * x_ * y_&#41; &#43; std::pow&#40;y_, 2&#41;&#41;&#41; /
+          &#40;2 * &#40;1 - std::pow&#40;rho, 2&#41;&#41;&#41;&#41; -
+         std::log&#40;2&#41; - std::log&#40;M_PI&#41; - log&#40;std::sqrt&#40;1 - std::pow&#40;rho, 2&#41;&#41;&#41;;
+&#125;</code></pre> <p>This means that I&#39;ve simplified the PDF <sup id="fnref:mathbinormal"><a href="#fndef:mathbinormal" class=fnref >[3]</a></sup> from equation <span class=eqref >(<a href="#mvnpdf">1</a>)</span> into:</p> <a id=bvnpdf  class=anchor ></a>\[ \text{PDF}(x, y)= \frac{1}{2 \pi \sqrt{1 - \rho^2 } \sigma_X \sigma_Y} e^{-\frac{\frac{x^{2}}{\sigma_{X}^{2}}-2 \rho-\frac{x y}{\sigma_{X} \sigma_{Y}}+\frac{y^{2}}{\sigma_{Y}^{2}}}{2\left(1-\rho^{2}\right)}} .\] <p>Since \(\sigma_{X} = \sigma_{Y} = 1\), equation <span class=eqref >(<a href="#bvnpdf">2</a>)</span> boils down to:</p> \[ \text{PDF}(x, y)=\frac{1}{2 \pi \sqrt{1 - \rho^2 }} e^{-\frac{x^{2} -2 \rho-x y+y^{2}}{2\left(1-\rho^{2}\right)}} .\] <p>no more determinants or matrix inversions. Easy-peasy for C&#43;&#43;.</p> <p>Now let&#39;s go to the last, but not least: <a href="https://mc-stan.org"><code>Stan</code></a> is a probabilistic language for specifying probabilistic models &#40;does the same as <code>Turing.jl</code> does&#41; and comes also with a very fast C&#43;&#43;-based MCMC sampler. <code>Stan</code> is a personal favorite of mine and I have a <a href="https://storopoli.io/Estatistica-Bayesiana/">whole graduate course of Bayesian statistics using <code>Stan</code></a>. Here&#39;s the <code>Stan</code> implementation:</p> <pre><code class=language-stan >functions &#123;
+    real binormal_lpdf&#40;real &#91;&#93; xy, real mu_X, real mu_Y, real sigma_X, real sigma_Y, real rho&#41; &#123;
+    real beta &#61; rho * sigma_Y / sigma_X; real sigma &#61; sigma_Y * sqrt&#40;1 - square&#40;rho&#41;&#41;;
+    return normal_lpdf&#40;xy&#91;1&#93; | mu_X, sigma_X&#41; &#43;
+           normal_lpdf&#40;xy&#91;2&#93; | mu_Y &#43; beta * &#40;xy&#91;1&#93; - mu_X&#41;, sigma&#41;;
+  &#125;
+
+  matrix metropolis_rng&#40;int S, real width,
+                        real mu_X, real mu_Y,
+                        real sigma_X, real sigma_Y,
+                        real rho&#41; &#123;
+    matrix&#91;S, 2&#93; out; real x &#61; normal_rng&#40;0, 1&#41;; real y &#61; normal_rng&#40;0, 1&#41;; real accepted &#61; 0;
+    for &#40;s in 1:S&#41; &#123;
+      real xmw &#61; x - width; real xpw &#61; x &#43; width; real ymw &#61; y - width; real ypw &#61; y &#43; width;
+      real x_ &#61; uniform_rng&#40;xmw, xpw&#41;; real y_ &#61; uniform_rng&#40;ymw, ypw&#41;;
+      real r &#61; exp&#40;binormal_lpdf&#40;&#123;x_, y_&#125; | mu_X, mu_Y, sigma_X, sigma_Y, rho&#41; -
+                            binormal_lpdf&#40;&#123;x , y &#125; | mu_X, mu_Y, sigma_X, sigma_Y, rho&#41;&#41;;
+      if &#40;r &gt; uniform_rng&#40;0, 1&#41;&#41; &#123;
+        x &#61; x_; y &#61; y_; accepted &#43;&#61; 1;
+      &#125;
+      out&#91;s, 1&#93; &#61; x;  out&#91;s, 2&#93; &#61; y;
+    &#125;
+    print&#40;&quot;Acceptance rate is &quot;, accepted / S&#41;;
+    return out;
+  &#125;
+&#125;</code></pre> <p>Wow, that was lot... Not let&#39;s go to the results. I&#39;ve benchmarked R and <code>Stan</code> code using <code>&#123;bench&#125;</code> and <code>&#123;rstan&#125;</code> packages, C&#43;&#43; using <code>catch2</code>, Julia using <code>BenchmarkTools.jl</code>. For all benchmarks the parameters were: <code>S &#61; 10_000</code> simulations, <code>width &#61; 2.75</code> and <code>ρ &#61; 0.8</code>. From fastest to slowest:</p> <ul> <li><p><code>Stan</code> - 3.6ms</p> <li><p>Julia - 6.3ms</p> <li><p>C&#43;&#43; <code>BiNormal</code> - 17ms</p> <li><p>C&#43;&#43; <code>MvNormal</code> - 592ms</p> <li><p>R - 1.35s which means 1350ms</p> </ul> <p><strong>Conclusion</strong>: a naïve Julia implementation beats C&#43;&#43; &#40;while also beating a C&#43;&#43; math-helped faster implementation using bivariate normal PDFs&#41; and gets very close to <code>Stan</code>, a highly specialized probabilistic language that compiles and runs on C&#43;&#43; with lots of contributors, funding and development time invested.</p> <p>Despite being <em>blazing</em> fast, Julia also <strong>codes very easily</strong>. You can write and read code without much effort.</p> <h2 id=multiple_dispatch ><a href="#multiple_dispatch" class=header-anchor >Multiple Dispatch</a></h2> <p>I think that this is the <strong>real gamechanger of Julia language</strong>: The ability to define <strong>function behavior</strong> across many combinations of argument types via <a href="https://en.wikipedia.org/wiki/Multiple_dispatch"><strong>multiple dispatch</strong></a>. <strong>Multiple dispatch</strong> is a feature that allows a function or method to be <strong>dynamically dispatched</strong> based on the run-time &#40;dynamic&#41; type or, in the more general case, some other attribute of more than one of its arguments. This is a <strong>generalization of single-dispatch polymorphism</strong> where a function or method call is dynamically dispatched based on the derived type of the object on which the method has been called. Multiple dispatch routes the dynamic dispatch to the implementing function or method using the combined characteristics of one or more arguments.</p> <p>Most languages have single-dispatch polymorphism that rely on the first parameter of a method in order to determine which method should be called. But what Julia differs is that <strong>multiple parameters are taken into account</strong>. This enables multiple definitions of similar functions that have the same initial parameter. I think that this is best explained by one of the creators of Julia, Stefan Karpinski, at JuliaCon 2019 &#40;see the video below&#41;:</p> <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube.com/embed/kc9HwsxE1OY' frameborder='0' allowfullscreen></iframe></div> <h3 id=example_dogs_and_cats ><a href="#example_dogs_and_cats" class=header-anchor >Example: Dogs and Cats</a></h3> <p>I will reproduce Karpinski&#39;s example. In the talk, Karpinski designs a structure of classes which are very common in object-oriented programming &#40;OOP&#41;. In Julia, we don&#39;t have classes but we have <strong>structures</strong> &#40;<code>struct</code>&#41; that are meant to be &quot;structured data&quot;: they define the kind of information that is embedded in the structure, that is a set of fields &#40;aka &quot;properties&quot; or &quot;attributes&quot; in other languages&#41;, and then individual instances &#40;or &quot;objects&quot;&#41; can be produced each with its own specific values for the fields defined by the structure.</p> <p>We create an abstract <code>type</code> called <code>Pet</code>. Then, we proceed by creating two derived <code>struct</code> from <code>Pet</code> that has one field <code>name</code> &#40;a <code>String</code>&#41;. These derived <code>struct</code> are <code>Dog</code> and <code>Cat</code>. We also define some methods for what happens in an &quot;encounter&quot; by defining a generic function <code>meets&#40;&#41;</code> and several specific methods of <code>meets&#40;&#41;</code> that will be multiple dispatched by Julia in runtime to define the action that one type <code>Pet</code> takes when it meets another <code>Pet</code>:</p> <pre><code class=language-julia >abstract type Pet end
+struct Dog &lt;: Pet name::String end
+struct Cat &lt;: Pet name::String end
+
+function encounter&#40;a::Pet, b::Pet&#41;
+    verb &#61; meets&#40;a, b&#41;
+    println&#40;&quot;&#36;&#40;a.name&#41; meets &#36;&#40;b.name&#41; and &#36;verb&quot;&#41;
+end
+
+meets&#40;a::Dog, b::Dog&#41; &#61; &quot;sniffs&quot;;
+meets&#40;a::Dog, b::Cat&#41; &#61; &quot;chases&quot;;
+meets&#40;a::Cat, b::Dog&#41; &#61; &quot;hisses&quot;;
+meets&#40;a::Cat, b::Cat&#41; &#61; &quot;slinks&quot;;</code></pre> <p>Let&#39;s see what happens when we instantiate objects from <code>Dog</code> and <code>Cat</code> and call <code>encounter</code> on them in Julia:</p> <pre><code class=language-julia >fido &#61; Dog&#40;&quot;Fido&quot;&#41;;
+rex &#61; Dog&#40;&quot;Rex&quot;&#41;;
+whiskers &#61; Cat&#40;&quot;Whiskers&quot;&#41;;
+spots &#61; Cat&#40;&quot;Spots&quot;&#41;;
+
+encounter&#40;fido, rex&#41;
+encounter&#40;rex, whiskers&#41;
+encounter&#40;spots, fido&#41;
+encounter&#40;whiskers, spots&#41;</code></pre><pre><code class="plaintext code-output">Fido meets Rex and sniffs
+Rex meets Whiskers and chases
+Spots meets Fido and hisses
+Whiskers meets Spots and slinks
+</code></pre> <p>It works as expected. Now let&#39;s translate this to modern C&#43;&#43; as literally as possible. Let&#39;s define a class <code>Pet</code> with a member variable <code>name</code> – in C &#43;&#43; we can do this. Then we define a base function <code>meets&#40;&#41;</code>, a function <code>encounter&#40;&#41;</code>for two objects of the type <code>Pet</code>, and finally, define derived classes <code>Dog</code>and <code>Cat</code> overload <code>meets&#40;&#41;</code> for them:</p> <pre><code class=language-cpp >#include &lt;iostream&gt;
+#include &lt;string&gt;
+
+using std::string;
+using std::cout;
+
+class Pet &#123;
+    public:
+        string name;
+&#125;;
+
+string meets&#40;Pet a, Pet b&#41; &#123; return &quot;FALLBACK&quot;; &#125; // If we use &#96;return meets&#40;a, b&#41;&#96; doesn&#39;t work
+
+void encounter&#40;Pet a, Pet b&#41; &#123;
+    string verb &#61; meets&#40;a, b&#41;;
+    cout &lt;&lt; a.name &lt;&lt; &quot; meets &quot;
+         &lt;&lt; b. name &lt;&lt; &quot; and &quot; &lt;&lt; verb &lt;&lt; &#39;\n&#39;;
+&#125;
+
+class Cat : public Pet &#123;&#125;;
+class Dog : public Pet &#123;&#125;;
+
+string meets&#40;Dog a, Dog b&#41; &#123; return &quot;sniffs&quot;; &#125;
+string meets&#40;Dog a, Cat b&#41; &#123; return &quot;chases&quot;; &#125;
+string meets&#40;Cat a, Dog b&#41; &#123; return &quot;hisses&quot;; &#125;
+string meets&#40;Cat a, Cat b&#41; &#123; return &quot;slinks&quot;; &#125;</code></pre> <p>Now we add a <code>main&#40;&#41;</code> function to the C&#43;&#43; script:</p> <pre><code class=language-cpp >int main&#40;&#41; &#123;
+    Dog fido;      fido.name     &#61; &quot;Fido&quot;;
+    Dog rex;       rex.name      &#61; &quot;Rex&quot;;
+    Cat whiskers;  whiskers.name &#61; &quot;Whiskers&quot;;
+    Cat spots;     spots.name    &#61; &quot;Spots&quot;;
+
+    encounter&#40;fido, rex&#41;;
+    encounter&#40;rex, whiskers&#41;;
+    encounter&#40;spots, fido&#41;;
+    encounter&#40;whiskers, spots&#41;;
+
+    return 0;
+&#125;</code></pre> <p>And this is what we get:</p> <pre><code class=language-bash >g&#43;&#43; main.cpp &amp;&amp; ./a.out
+
+Fido meets Rex and FALLBACK
+Rex meets Whiskers and FALLBACK
+Spots meets Fido and FALLBACK
+Whiskers meets Spots and FALLBACK</code></pre> <p>Doesn&#39;t work... 🤷🏼</p> <h3 id=example_one-hot_vector ><a href="#example_one-hot_vector" class=header-anchor >Example: One-hot Vector</a></h3> <p>Now let&#39;s change to another nice example of creating a <a href="https://en.wikipedia.org/wiki/One-hot">one-hot vector</a>. One-hot vector is a vector of integers in which all indices are zero &#40;0&#41; expect for one single index that is one &#40;1&#41;. In machine learning, one-hot encoding is a frequently used method to deal with categorical data. Because many machine learning models need their input variables to be numeric, categorical variables need to be transformed in the pre-processing part. The example below is heavily inspired by a <a href="https://habr.com/ru/post/468609/">post from Vasily Pisarev</a><sup id="fnref:onehotpost"><a href="#fndef:onehotpost" class=fnref >[4]</a></sup>.</p> <p>How we would represent one-hot vectors in Julia? Simple: we create a new type <code>OneHotVector</code> in Julia using the <code>struct</code> keyword and define two fields <code>len</code> and <code>ind</code>, which represents the <code>OneHotVector</code> length and which index is the entry 1 &#40;<em>i.e.</em> which index is &quot;hot&quot;&#41;. Then, we define new methods for the <code>Base</code> functions <code>size&#40;&#41;</code> and <code>getindex&#40;&#41;</code> for our newly defined <code>OneHotVector</code>.</p> <pre><code class=language-julia >import Base: size, getindex
+
+struct OneHotVector &lt;: AbstractVector&#123;Int&#125;
+    len::Int
+    ind::Int
+end
+
+size&#40;v::OneHotVector&#41; &#61; &#40;v.len,&#41;
+
+getindex&#40;v::OneHotVector, i::Integer&#41; &#61; Int&#40;i &#61;&#61; v.ind&#41;</code></pre><pre><code class="plaintext code-output">getindex (generic function with 842 methods)</code></pre>
+<p>Since <code>OneHotVector</code> is a <code>struct</code> derived from <code>AbstractVector</code> we can use all of the methods previously defined for <code>AbstractVector</code> and it simply works right off the bat. Here we are constructing an <code>Array</code> with a list comprehension:</p>
+<pre><code class=language-julia >onehot &#61; &#91;OneHotVector&#40;3, rand&#40;1:3&#41;&#41; for _ in 1:4&#93;</code></pre><pre><code class="plaintext code-output">4-element Vector{OneHotVector}:
+ [0, 0, 1]
+ [0, 0, 1]
+ [1, 0, 0]
+ [0, 0, 1]</code></pre>
+<p>Now I define a new function <code>inner_sum&#40;&#41;</code> that is basically a recursive dot product with a summation. Here A – this is something matrix-like &#40;although I did not indicate the types, and you can guess something only by the name&#41;, and <code>vs</code> is a vector of some vector-like elements. The function proceeds by taking the dot product of the &quot;matrix&quot; with all vector-like elements of <code>vs</code> and returning the accumulated values. This is all given generic definition without specifying any types. Generic programming here consists in this very function call <code>inner&#40;&#41;</code> in a loop.</p>
+<pre><code class=language-julia >using LinearAlgebra
+
+function inner_sum&#40;A, vs&#41;
+    t &#61; zero&#40;eltype&#40;A&#41;&#41;
+    for v in vs
+        t &#43;&#61; inner&#40;v, A, v&#41; # multiple dispatch&#33;
+    end
+    return t
+end
+
+inner&#40;v, A, w&#41; &#61; dot&#40;v, A * w&#41; # very general definition</code></pre><pre><code class="plaintext code-output">inner (generic function with 1 method)</code></pre>
+<p>So, &quot;look mom, it works&quot;:</p>
+<pre><code class=language-julia >A &#61; rand&#40;3, 3&#41;
+vs &#61; &#91;rand&#40;3&#41; for _ in 1:4&#93;
+inner_sum&#40;A, vs&#41;</code></pre><pre><code class="plaintext code-output">8.277061191846386</code></pre>
+<p>Since <code>OneHotVector</code> is a subtype of <code>AbstractVector</code>:</p>
+<pre><code class=language-julia >supertype&#40;OneHotVector&#41;</code></pre><pre><code class="plaintext code-output">AbstractVector{Int64} (alias for AbstractArray{Int64, 1})</code></pre>
+<p>We can use <code>inner_sum</code> and it will do what it is supposed to do:</p>
+<pre><code class=language-julia >inner_sum&#40;A, onehot&#41;</code></pre><pre><code class="plaintext code-output">2.8788148601764845</code></pre>
+<p>But this default implementation is <strong>slow</strong>:</p>
+<pre><code class=language-julia >using BenchmarkTools
+
+@btime inner_sum&#40;&#36;A, &#36;onehot&#41;;</code></pre><pre><code class="plaintext code-output">  229.714 ns (4 allocations: 448 bytes)
+</code></pre>
+<p>We can greatly optimize this procedure. Now let&#39;s redefine matrix multiplication by <code>OneHotVector</code> with a simple column selection. We do this by defining a new method of the <code>*</code> function &#40;multiplier function&#41; of <code>Base</code> Julia. Additionally we also create a new optimized method of <code>inner&#40;&#41;</code> for dealing with <code>OneHotVector</code>:</p>
+<pre><code class=language-julia >import Base:*
+
+*&#40;A::AbstractMatrix, v::OneHotVector&#41; &#61; A&#91;:, v.ind&#93;
+inner&#40;v::OneHotVector, A, w::OneHotVector&#41; &#61; A&#91;v.ind, w.ind&#93;</code></pre><pre><code class="plaintext code-output">inner (generic function with 2 methods)</code></pre>
+<p>That&#39;s it&#33; Simple, huh? Now let&#39;s benchmark:</p>
+<pre><code class=language-julia >@btime inner_sum&#40;&#36;A, &#36;onehot&#41;;</code></pre><pre><code class="plaintext code-output">  6.100 ns (0 allocations: 0 bytes)
+</code></pre>
+<p><strong>Huge gains</strong> of speed&#33; 🚀</p>
+<h2 id=julia_the_right_approach ><a href="#julia_the_right_approach" class=header-anchor >Julia: the right approach</a></h2>
+<p>Here are some more thoughts on why I believe Julia is the right approach to scientific computation.</p>
+<p>Below is a very opinionated image that divides the scientific computing languages that we&#39;ve spoken so far in a 2x2 diagram with two axes: <em>Slow-Fast</em> and <em>Easy-Hard</em>. I&#39;ve put C&#43;&#43; and FORTRAN in the hard and fast quadrant. R and Python goes into the easy and slow quadrant. Julia is the only language in the easy and fast quadrant. I don&#39;t know any language that would want to be hard and slow, so this quadrant is empty.</p>
+<p><img src="/Bayesian-Julia/pages/images/language_comparisons.svg" alt="Scientific Computing Language Comparisons" /></p>
+<p><div class=text-center ><em>Scientific Computing Language Comparisons</em></div> <br/></p>
+<p>What I want to say with this image is that if you want to <strong>code fast and easy</strong> use Julia.</p>
+<p>One other thing to note that I find quite astonishing is that Julia packages are all written in Julia. This does not happen in other scientific computing languages. For example, the whole <code>&#123;tidyverse&#125;</code> ecosystem of R packages are based on C&#43;&#43;. <code>NumPy</code> and <code>SciPy</code> are a mix of FORTRAN and C. <code>Scikit-Learn</code> is also coded in C.</p>
+<p>See the figure below where I compare the GitHub&#39;s &quot;Languages&quot; stack bar of <a href="https://github.com/pytorch/pytorch"><code>PyTorch</code></a>, <a href="https://github.com/tensorflow/tensorflow"><code>TensorFlow</code></a> and <a href="https://github.com/FluxML/Flux.jl"><code>Flux.jl</code></a>&#40;Julia&#39;s Deep Learning package&#41;. This figure I would call <em>&quot;Python my a**&#33;&quot;</em> 😂:</p>
+<p><img src="/Bayesian-Julia/pages/images/ML_code_breakdown.svg" alt="Python my ass" /></p>
+<p><div class=text-center ><em>Python my a**&#33;</em></div> <br/></p>
+<div class=note ><div class=title >⚠ Note</div>
+<div class=content >On the other hand, language <em>interoperability</em> is extremely useful: we want to exploit existing high-quality code in other languages from Julia &#40;and vice versa&#41;&#33; Julia community have worked hard on this, from the built-in intrinsic Julia <code>ccall</code> function &#40;to call C and Fortran libraries&#41; to <a href="https://github.com/JuliaInterop">JuliaInterop</a><sup id="fnref:interop"><a href="#fndef:interop" class=fnref >[5]</a></sup> packages that connect Julia to Python, R, Matlab, C&#43;&#43;, and more.</div></div>
+<p>Another example comes from a Julia podcast that unfortunately I cannot recollect either what podcast was nor who was being interviewed. While being asked about how he joined the Julia bandwagon, he replied something in the likes:</p>
+<blockquote>
+<p><em>&quot;Well, I was doing some crazy calculation using a library that was a wrapper to an algorithm coded in FORTRAN and I was trying to get help with a bug. I opened an issue and after 2 weeks of no reply I&#39;ve dived into the FORTRAN code &#40;despite having no knowledge of FORTRAN&#41;. There I saw a comment from the original author describing exactly the same bug that I was experiencing and saying that he would fix this in the future. The comment was dated from 1992. At the same time a colleague of mine suggested that I could try to code the algorithm in some new language called Julia. I thought &#39;me?&#33; code an algorithm?&#33;&#39;. So, I coded the algorithm in Julia and it was faster than the FORTRAN implementation and also without the evil bug. One thing to note that it was really easy to code the algorithm in Julia.&quot;</em></p>
+</blockquote>
+<p>Having stuff in different language and wrappers can hinder further research as you can see from this example.</p>
+<p>As you saw from the <a href="https://youtu.be/kc9HwsxE1OY">Karpinski&#39;s talk</a> above, <strong>multiple dispatch empower users to define their own types &#40;if necessary&#41;</strong> and also allows them to <strong>extend functions and types from other users</strong> to their own special use. This results in an ecosystem that stimulates code sharing and code reuse in scientific computing that is unmatched. For instance, if I plug a differential equation from <a href="https://diffeq.sciml.ai/"><code>DifferentialEquations.jl</code></a> into a <a href="https://turing.ml/"><code>Turing.jl</code></a> model I get a Bayesian stochastic differential equation model, <em>e.g.</em> <strong>Bayesian SIR model for infectious disease</strong>. If I plug a <a href="https://fluxml.ai/"><code>Flux.jl</code></a> neural network into a <a href="https://turing.ml/"><code>Turing.jl</code></a> model I get a <strong>Bayesian neural network</strong>&#33; When I saw this type of code sharing I was blown away &#40;and I still am&#41;.</p>
+<div class=note ><div class=title >⚠ Note</div>
+<div class=content >This is the <strong>true power</strong> of a scientific computing language like Julia. It brings so much <strong>power</strong> and <strong>flexibility</strong> to the user and allows different ways of <strong>sharing</strong>, <strong>contributing</strong>, <strong>extending</strong>, <strong>mixing</strong> and <strong>implementing</strong> code and science. I hope this short dive into Julia has somehow sent you <strong>towards</strong> Julia.</div></div>
+<h2 id=footnotes ><a href="#footnotes" class=header-anchor >Footnotes</a></h2>
+<p><table class=fndef  id="fndef:updatedversion">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:updatedversion">[1]</a>
+        <td class=fndef-content >please note that I&#39;ve used updated versions for all languages and packages as of April, 2021. <code>DataFrames.jl</code> version 1.0.1, <code>Pandas</code> version 1.2.4, <code>NumPy</code> version 1.20.2, <code>&#123;dplyr&#125;</code> version 1.0.5. We did not cover R&#39;s <code>&#123;data.table&#125;</code> here. Further benchmarking information is available for example here: <a href="https://h2oai.github.io/db-benchmark/">Tabular data benchmarking</a>
+    
+</table>
+<table class=fndef  id="fndef:mvnimplem">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:mvnimplem">[2]</a>
+        <td class=fndef-content >which of course I did not. The <code>Mvn</code> class is inspired by <a href="http://blog.sarantop.com/notes/mvn">Iason Sarantopoulos&#39; implementation</a>.
+    
+</table>
+<table class=fndef  id="fndef:mathbinormal">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:mathbinormal">[3]</a>
+        <td class=fndef-content >you can find all the math <a href="http://www.athenasc.com/Bivariate-Normal.pdf">here</a>.
+    
+</table>
+<table class=fndef  id="fndef:onehotpost">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:onehotpost">[4]</a>
+        <td class=fndef-content >the post in Russian, I&#39;ve &quot;Google Translated&quot; it to English.
+    
+</table>
+<table class=fndef  id="fndef:interop">
+    <tr>
+        <td class=fndef-backref ><a href="#fnref:interop">[5]</a>
+        <td class=fndef-content >Julia has a lot of interoperability between languages. Check out: <a href="https://github.com/JuliaPy/PyCall.jl"><code>PyCall.jl</code></a> and <a href="https://github.com/JuliaPy"><code>JuliaPy</code></a> for Python; <a href="https://juliainterop.github.io/RCall.jl/stable/"><code>RCall.jl</code></a> for Java; <a href="https://juliainterop.github.io/Cxx.jl/stable/"><code>Cxx.jl</code></a> and <a href="https://github.com/JuliaInterop/CxxWrap.jl"><code>CxxWrap.jl</code></a> for C&#43;&#43;; <a href="https://github.com/JuliaInterop/Clang.jl"><code>Clang.jl</code></a> for libclang and C; <a href="https://github.com/JuliaInterop/ObjectiveC.jl"><code>ObjectiveC.jl</code></a> for Objective-C; <a href="https://juliainterop.github.io/JavaCall.jl/"><code>JavaCall.jl</code></a> for Java; <a href="https://github.com/JuliaInterop/MATLAB.jl"><code>MATLAB.jl</code></a> for MATLAB; <a href="https://github.com/JuliaInterop/MathLink.jl"><code>MathLink.jl</code></a> for Mathematica/Wolfram Engine; <a href="https://github.com/JuliaInterop/OctCall.jl"><code>OctCall.jl</code></a> for GNU Octave; and <a href="https://juliainterop.github.io/ZMQ.jl/stable/"><code>ZMQ.jl</code></a> for ZeroMQ.
+    
+</table>
+</p>
+<h2 id=references ><a href="#references" class=header-anchor >References</a></h2>
+<p>Bezanson, J., Edelman, A., Karpinski, S., &amp; Shah, V. B. &#40;2017&#41;. Julia: A fresh approach to numerical computing. SIAM Review, 59&#40;1&#41;, 65–98.</p>
+
+<div class=page-foot >
+  <div class=copyright >
+    Last modified: August 24, 2021. Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+  </div>
+</div>
+</div>
+    </div> 
+    </div> 
+    </div> <!-- end of class page-wrap-->
+    
+      <script src="/Bayesian-Julia/libs/katex/katex.min.js"></script>
+<script src="/Bayesian-Julia/libs/katex/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+      <script src="/Bayesian-Julia/libs/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();hljs.configure({tabReplace: '    '});</script>

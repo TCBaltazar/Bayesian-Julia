@@ -1,0 +1,142 @@
+<!doctype html> <html lang=en > <meta charset=UTF-8 > <meta name=viewport  content="width=device-width, initial-scale=1"> <link rel=stylesheet  href="/Bayesian-Julia/libs/katex/katex.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/libs/highlight/github.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/css/jtd.css"> <link rel=icon  href="/Bayesian-Julia/assets/favicon.ico"> <title>Bonus: Epidemiological Models using ODE Solvers in Turing</title> <div class=page-wrap > <div class=side-bar > <div class=header > <a href="/Bayesian-Julia/" class=title > Bayesian Stats </a> </div> <label for=show-menu  class=show-menu >MENU</label> <input type=checkbox  id=show-menu  role=button > <div class=menu  id=side-menu > <ul class=menu-list > <li class="menu-list-item "><a href="/Bayesian-Julia/" class="menu-list-link ">Home</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/1_why_Julia/" class="menu-list-link ">1. Why Julia?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/2_bayes_stats/" class="menu-list-link ">2. What is Bayesian Statistics?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/3_prob_dist/" class="menu-list-link ">3. Common Probability Distributions</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/4_Turing/" class="menu-list-link ">4. How to use Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/5_MCMC/" class="menu-list-link ">5. Markov Chain Monte Carlo (MCMC)</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/6_linear_reg/" class="menu-list-link ">6. Bayesian Linear Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/7_logistic_reg/" class="menu-list-link ">7. Bayesian Logistic Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/8_count_reg/" class="menu-list-link ">8. Bayesian Regression with Count Data</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/9_robust_reg/" class="menu-list-link ">9. Robust Bayesian Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/10_multilevel_models/" class="menu-list-link ">10. Multilevel Models</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/11_Turing_tricks/" class="menu-list-link ">11. Computational Tricks with Turing</a> <li class="menu-list-item active"><a href="/Bayesian-Julia/pages/12_epi_models/" class="menu-list-link active">12. Bayesian Epidemiological Models</a> </ul> </div> <div class=footer > <a href="https://www.julialang.org"><img style="height:50px;padding-left:10px;margin-bottom:15px;" src="https://julialang.org/assets/infra/logo.svg" alt="Julia Logo"></a> </div> </div> <div class=main-content-wrap > <div class=main-content > <div class=main-header > <a id=github  href="https://github.com/storopoli/Bayesian-Julia">Code on GitHub</a> </div> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-186284914-6"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-186284914-6'); </script> <div class=franklin-content ><div class=franklin-toc ><ol><li><a href="#how_to_code_an_ode_in_julia">How to code an ODE in Julia?</a><li><a href="#how_to_use_a_ode_solver_in_a_turing_model">How to use a ODE solver in a Turing Model</a><li><a href="#references">References</a></ol></div> <h1 id=bonus_epidemiological_models_using_ode_solvers_in_turing ><a href="#bonus_epidemiological_models_using_ode_solvers_in_turing" class=header-anchor >Bonus: Epidemiological Models using ODE Solvers in Turing</a></h1> <p>Ok, now this is something that really makes me very excited with Julia&#39;s ecosystem. If you want to use an <strong>O</strong>rdinary <strong>D</strong>ifferential <strong>E</strong>quation solver in your Turing model, you don&#39;t need to code it from scratch. You&#39;ve just <strong>borrow a pre-made one</strong> from <a href="https://diffeq.sciml.ai/dev/"><code>DifferentialEquations.jl</code></a>. This is what makes Julia so great. We can use functions and types defined in other packages into another package and it will probably work either straight out of the bat or without much effort&#33;</p> <p>For this tutorial I&#39;ll be using Brazil&#39;s COVID data from the <a href="https://brasil.io/covid19/">Media Consortium</a>. For reproducibility, we&#39;ll restrict the data to the year of 2020:</p> <pre><code class=language-julia >using Downloads, DataFrames, CSV, GZip, Chain, Dates
+
+url &#61; &quot;https://data.brasil.io/dataset/covid19/caso_full.csv.gz&quot;
+file &#61; Downloads.download&#40;url&#41;
+df &#61; CSV.File&#40;GZip.open&#40;file, &quot;r&quot;&#41;&#41; |&gt; DataFrame
+
+br &#61; @chain df begin
+    filter&#40;&#91;:date, :city&#93; &#61;&gt; &#40;date, city&#41; -&gt; date &lt; Dates.Date&#40;&quot;2021-01-01&quot;&#41; &amp;&amp; date &gt; Dates.Date&#40;&quot;2020-04-01&quot;&#41; &amp;&amp; ismissing&#40;city&#41;, _&#41;
+    groupby&#40;:date&#41;
+    combine&#40;
+        &#91;:estimated_population_2019,
+         :last_available_confirmed_per_100k_inhabitants,
+         :last_available_deaths,
+         :new_confirmed,
+         :new_deaths&#93; .&#61;&gt; sum .&#61;&gt;
+         &#91;:estimated_population_2019,
+         :last_available_confirmed_per_100k_inhabitants,
+         :last_available_deaths,
+         :new_confirmed,
+         :new_deaths&#93;
+    &#41;
+end;</code></pre> <p>Let&#39;s take a look in the first observations</p> <pre><code class=language-julia >first&#40;br, 5&#41;</code></pre><pre><code class="plaintext code-output">5×6 DataFrame
+ Row │ date        estimated_population_2019  last_available_confirmed_per_100k_inhabitants  last_available_deaths  new_confirmed  new_deaths
+     │ Date…       Int64                      Float64                                        Int64                  Int64          Int64
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ 2020-04-02                  210147125                                        79.6116                    305           1167          61
+   2 │ 2020-04-03                  210147125                                        90.9596                    365           1114          60
+   3 │ 2020-04-04                  210147125                                       103.622                     445           1169          80
+   4 │ 2020-04-05                  210147125                                       115.594                     496           1040          51
+   5 │ 2020-04-06                  210147125                                       125.766                     569            840          73</code></pre> <p>Also the bottom rows</p> <pre><code class=language-julia >last&#40;br, 5&#41;</code></pre><pre><code class="plaintext code-output">5×6 DataFrame
+ Row │ date        estimated_population_2019  last_available_confirmed_per_100k_inhabitants  last_available_deaths  new_confirmed  new_deaths
+     │ Date…       Int64                      Float64                                        Int64                  Int64          Int64
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ 2020-12-27                  210147125                                      1.22953e5                 191250          17614         337
+   2 │ 2020-12-28                  210147125                                      1.23554e5                 191788          27437         538
+   3 │ 2020-12-29                  210147125                                      1.24291e5                 192839          56371        1051
+   4 │ 2020-12-30                  210147125                                      1.25047e5                 194056          55600        1217
+   5 │ 2020-12-31                  210147125                                      1.25724e5                 195072          54469        1016</code></pre> <p>Here is a plot of the data:</p> <pre><code class=language-julia >using Plots, StatsPlots, LaTeXStrings
+@df br plot&#40;:date,
+            :new_confirmed,
+            xlab&#61;L&quot;t&quot;, ylab&#61;&quot;infected daily&quot;,
+            yformatter&#61;y -&gt; string&#40;round&#40;Int64, y ÷ 1_000&#41;&#41; * &quot;K&quot;,
+            label&#61;false&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/12_epi_models/code/output/infected.svg" alt=""> <div class=text-center ><em>Infected in Brazil during COVID in 2020</em></div> <br/></p> <p>The Susceptible-Infected-Recovered &#40;SIR&#41; &#40;Grinsztajn, Semenova, Margossian &amp; Riou, 2021&#41; model splits the population in three time-dependent compartments: the susceptible, the infected &#40;and infectious&#41;, and the recovered &#40;and not infectious&#41; compartments. When a susceptible individual comes into contact with an infectious individual, the former can become infected for some time, and then recover and become immune. The dynamics can be summarized in a system ODEs:</p> <p><img src="/Bayesian-Julia/pages/images/SIR.png" alt="SIR Model" /></p> <p><div class=text-center ><em>Susceptible-Infected-Recovered &#40;SIR&#41; model</em></div> <br/></p> \[ \begin{aligned} \frac{dS}{dt} &= -\beta S \frac{I}{N}\\ \frac{dI}{dt} &= \beta S \frac{I}{N} - \gamma I \\ \frac{dR}{dt} &= \gamma I \end{aligned} \] <p>where:</p> <ul> <li><p>\(S(t)\) – the number of people susceptible to becoming infected &#40;no immunity&#41;</p> <li><p>\(I(t)\) – the number of people currently infected &#40;and infectious&#41;</p> <li><p>\(R(t)\) – the number of recovered people &#40;we assume they remain immune indefinitely&#41;</p> <li><p>\(\beta\) – the constant rate of infectious contact between people</p> <li><p>\(\gamma\) – constant recovery rate of infected individuals</p> </ul> <h2 id=how_to_code_an_ode_in_julia ><a href="#how_to_code_an_ode_in_julia" class=header-anchor >How to code an ODE in Julia?</a></h2> <p>It&#39;s very easy:</p> <ol> <li><p>Use <a href="https://diffeq.sciml.ai/"><code>DifferentialEquations.jl</code></a></p> <li><p>Create a ODE function</p> <li><p>Choose:</p> <ul> <li><p>Initial Conditions – \(u_0\)</p> <li><p>Parameters – \(p\)</p> <li><p>Time Span – \(t\)</p> <li><p><em>Optional</em> – <a href="https://diffeq.sciml.ai/stable/solvers/ode_solve/">Solver</a> or leave blank for auto</p> </ul> </ol> <p>PS: If you like SIR models checkout <a href="https://github.com/epirecipes/sir-julia"><code>epirecipes/sir-julia</code></a></p> <p>The following function provides the derivatives of the model, which it changes in-place. State variables and parameters are unpacked from <code>u</code> and <code>p</code>; this incurs a slight performance hit, but makes the equations much easier to read.</p> <pre><code class=language-julia >using DifferentialEquations
+
+function sir_ode&#33;&#40;du, u, p, t&#41;
+    &#40;S, I, R&#41; &#61; u
+    &#40;β, γ&#41; &#61; p
+    N &#61; S &#43; I &#43; R
+    infection &#61; β * I * S / N
+    recovery &#61; γ * I
+    @inbounds begin
+        du&#91;1&#93; &#61; -infection # Susceptible
+        du&#91;2&#93; &#61; infection - recovery # Infected
+        du&#91;3&#93; &#61; recovery # Recovered
+    end
+    nothing
+end;</code></pre> <p>This is what the infection would look with some fixed <code>β</code> and <code>γ</code> in a timespan of 100 days starting from day one with 1,167 infected &#40;Brazil in April 2020&#41;:</p> <pre><code class=language-julia >i₀ &#61; first&#40;br&#91;:, :new_confirmed&#93;&#41;
+N &#61; maximum&#40;br&#91;:, :estimated_population_2019&#93;&#41;
+
+u &#61; &#91;N - i₀, i₀, 0.0&#93;
+p &#61; &#91;0.5, 0.05&#93;
+prob &#61; ODEProblem&#40;sir_ode&#33;, u, &#40;1.0, 100.0&#41;, p&#41;
+sol_ode &#61; solve&#40;prob&#41;
+plot&#40;sol_ode, label&#61;&#91;L&quot;S&quot; L&quot;I&quot; L&quot;R&quot; &#93;,
+     lw&#61;3,
+     xlabel&#61;L&quot;t&quot;,
+     ylabel&#61;L&quot;N&quot;,
+     yformatter&#61;y -&gt; string&#40;round&#40;Int64, y ÷ 1_000_000&#41;&#41; * &quot;mi&quot;,
+     title&#61;&quot;SIR Model for 100 days, β &#61; &#36;&#40;p&#91;1&#93;&#41;, γ &#61; &#36;&#40;p&#91;2&#93;&#41;&quot;&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/12_epi_models/code/output/ode_solve.svg" alt=""> <div class=text-center ><em>SIR ODE Solution for Brazil&#39;s 100 days of COVID in early 2020</em></div> <br/></p> <h2 id=how_to_use_a_ode_solver_in_a_turing_model ><a href="#how_to_use_a_ode_solver_in_a_turing_model" class=header-anchor >How to use a ODE solver in a Turing Model</a></h2> <p>Please note that we are using the alternative negative binomial parameterization as specified in <a href="/Bayesian-Julia/pages/8_count_reg/">8. <strong>Bayesian Regression with Count Data</strong></a>:</p> <pre><code class=language-julia >function NegativeBinomial2&#40;μ, ϕ&#41;
+    p &#61; 1 / &#40;1 &#43; μ / ϕ&#41;
+    r &#61; ϕ
+
+    return NegativeBinomial&#40;r, p&#41;
+end</code></pre><pre><code class="plaintext code-output">NegativeBinomial2 (generic function with 1 method)</code></pre>
+<p>Now this is the fun part. It&#39;s easy: just stick it inside&#33;</p>
+<pre><code class=language-julia >using Turing
+using LazyArrays
+using Random:seed&#33;
+seed&#33;&#40;123&#41;
+
+@model bayes_sir&#40;infected, i₀, r₀, N&#41; &#61; begin
+    #calculate number of timepoints
+    l &#61; length&#40;infected&#41;
+
+    #priors
+    β ~ TruncatedNormal&#40;2, 1, 1e-4, 10&#41;     # using 10 instead of Inf because numerical issues arose
+    γ ~ TruncatedNormal&#40;0.4, 0.5, 1e-4, 10&#41; # using 10 instead of Inf because numerical issues arose
+    ϕ⁻ ~ truncated&#40;Exponential&#40;5&#41;, 0, 1e5&#41;
+    ϕ &#61; 1.0 / ϕ⁻
+
+    #ODE Stuff
+    I &#61; i₀
+    u0 &#61; &#91;N - I, I, r₀&#93; # S,I,R
+    p &#61; &#91;β, γ&#93;
+    tspan &#61; &#40;1.0, float&#40;l&#41;&#41;
+    prob &#61; ODEProblem&#40;sir_ode&#33;,
+            u0,
+            tspan,
+            p&#41;
+    sol &#61; solve&#40;prob,
+                Tsit5&#40;&#41;, # similar to Dormand-Prince RK45 in Stan but 20&#37; faster
+                saveat&#61;1.0&#41;
+    solᵢ &#61; Array&#40;sol&#41;&#91;2, :&#93; # New Infected
+    solᵢ &#61; max.&#40;1e-4, solᵢ&#41; # numerical issues arose
+
+    #likelihood
+    infected ~ arraydist&#40;LazyArray&#40;@~ NegativeBinomial2.&#40;solᵢ, ϕ&#41;&#41;&#41;
+end;</code></pre>
+<p>Now run the model and inspect our parameters estimates. We will be using the default <code>NUTS&#40;&#41;</code> sampler with <code>2_000</code> samples on only one Markov chain:</p>
+<pre><code class=language-julia >infected &#61; br&#91;:, :new_confirmed&#93;
+r₀ &#61; first&#40;br&#91;:, :new_deaths&#93;&#41;
+model_sir &#61; bayes_sir&#40;infected, i₀, r₀, N&#41;
+chain_sir &#61; sample&#40;model_sir, NUTS&#40;&#41;, 2_000&#41;
+summarystats&#40;chain_sir&#91;&#91;:β, :γ&#93;&#93;&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse        ess      rhat   ess_per_sec
+      Symbol   Float64   Float64    Float64   Float64    Float64   Float64       Float64
+
+           β    1.1188    0.0288     0.0006    0.0008   697.2616    1.0007        4.0610
+           γ    1.0858    0.0291     0.0007    0.0008   697.5407    1.0007        4.0627
+</code></pre>
+<p>Hope you had learned some new bayesian computational skills and also took notice of the amazing potential of Julia&#39;s ecosystem of packages.</p>
+<h2 id=references ><a href="#references" class=header-anchor >References</a></h2>
+<p>Grinsztajn, L., Semenova, E., Margossian, C. C., &amp; Riou, J. &#40;2021&#41;. Bayesian workflow for disease transmission modeling in Stan. ArXiv:2006.02985 &#91;q-Bio, Stat&#93;. http://arxiv.org/abs/2006.02985</p>
+
+<div class=page-foot >
+  <div class=copyright >
+    Last modified: August 24, 2021. Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+  </div>
+</div>
+</div>
+    </div> 
+    </div> 
+    </div> <!-- end of class page-wrap-->
+    
+      <script src="/Bayesian-Julia/libs/katex/katex.min.js"></script>
+<script src="/Bayesian-Julia/libs/katex/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+      <script src="/Bayesian-Julia/libs/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();hljs.configure({tabReplace: '    '});</script>

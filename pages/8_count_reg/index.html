@@ -1,0 +1,181 @@
+<!doctype html> <html lang=en > <meta charset=UTF-8 > <meta name=viewport  content="width=device-width, initial-scale=1"> <link rel=stylesheet  href="/Bayesian-Julia/libs/katex/katex.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/libs/highlight/github.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/css/jtd.css"> <link rel=icon  href="/Bayesian-Julia/assets/favicon.ico"> <title>Bayesian Regression with Count Data</title> <div class=page-wrap > <div class=side-bar > <div class=header > <a href="/Bayesian-Julia/" class=title > Bayesian Stats </a> </div> <label for=show-menu  class=show-menu >MENU</label> <input type=checkbox  id=show-menu  role=button > <div class=menu  id=side-menu > <ul class=menu-list > <li class="menu-list-item "><a href="/Bayesian-Julia/" class="menu-list-link ">Home</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/1_why_Julia/" class="menu-list-link ">1. Why Julia?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/2_bayes_stats/" class="menu-list-link ">2. What is Bayesian Statistics?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/3_prob_dist/" class="menu-list-link ">3. Common Probability Distributions</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/4_Turing/" class="menu-list-link ">4. How to use Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/5_MCMC/" class="menu-list-link ">5. Markov Chain Monte Carlo (MCMC)</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/6_linear_reg/" class="menu-list-link ">6. Bayesian Linear Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/7_logistic_reg/" class="menu-list-link ">7. Bayesian Logistic Regression</a> <li class="menu-list-item active"><a href="/Bayesian-Julia/pages/8_count_reg/" class="menu-list-link active">8. Bayesian Regression with Count Data</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/9_robust_reg/" class="menu-list-link ">9. Robust Bayesian Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/10_multilevel_models/" class="menu-list-link ">10. Multilevel Models</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/11_Turing_tricks/" class="menu-list-link ">11. Computational Tricks with Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/12_epi_models/" class="menu-list-link ">12. Bayesian Epidemiological Models</a> </ul> </div> <div class=footer > <a href="https://www.julialang.org"><img style="height:50px;padding-left:10px;margin-bottom:15px;" src="https://julialang.org/assets/infra/logo.svg" alt="Julia Logo"></a> </div> </div> <div class=main-content-wrap > <div class=main-content > <div class=main-header > <a id=github  href="https://github.com/storopoli/Bayesian-Julia">Code on GitHub</a> </div> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-186284914-6"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-186284914-6'); </script> <div class=franklin-content ><div class=franklin-toc ><ol><li><a href="#comparison_with_linear_regression">Comparison with Linear Regression</a><li><a href="#bayesian_regression_with_count_data__2">Bayesian Regression with Count Data</a><ol><li><a href="#using_poisson_likelihood">Using Poisson Likelihood</a><li><a href="#using_negative_binomial_likelihood">Using Negative Binomial Likelihood</a><ol><li><a href="#alternative_negative_binomial_parameterization">Alternative Negative Binomial Parameterization</a></ol></ol><li><a href="#example_-_roaches_extermination">Example - Roaches Extermination</a><ol><li><a href="#poisson_regression">Poisson Regression</a><li><a href="#negative_binomial_regression">Negative Binomial Regression</a></ol><li><a href="#references">References</a></ol></div> <h1 id=bayesian_regression_with_count_data ><a href="#bayesian_regression_with_count_data" class=header-anchor >Bayesian Regression with Count Data</a></h1> <p>Leaving the universe of linear models, we start to venture into generalized linear models &#40;GLM&#41;. The second of these is <strong>regression with count data</strong> &#40;also called Poisson regression&#41;.</p> <p>A regression with count data behaves exactly like a linear model: it makes a prediction simply by computing a weighted sum of the independent variables \(\mathbf{X}\) by the estimated coefficients \(\boldsymbol{\beta}\), plus an intercept \(\alpha\). However, instead of returning a continuous value \(y\), such as linear regression, it returns the <strong>natural log</strong> of \(y\).</p> <p>We use regression with count data when our dependent variable is restricted to positive integers, <em>i.e.</em> \(y \in \mathbb{Z}^+\). See the figure below for a graphical intuition of the exponential function:</p> <pre><code class=language-julia >using Plots, LaTeXStrings
+
+plot&#40;exp, -6, 6, label&#61;false,
+     xlabel&#61;L&quot;x&quot;, ylabel&#61;L&quot;e^x&quot;&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/8_count_reg/code/output/exponential.svg" alt=""> <div class=text-center ><em>Exponential Function</em></div> <br/></p> <p>As we can see, the exponential function is basically a mapping of any real number to a positive real number in the range between 0 and \(+\infty\) &#40;non-inclusive&#41;:</p> \[ \text{Exponential}(x) = \{ \mathbb{R} \in [- \infty , + \infty] \} \to \{ \mathbb{R} \in [0, + \infty] \} \] <p>That is, the exponential function is the ideal candidate for when we need to convert something continuous without restrictions to something continuous restricted to taking positive values only. That is why it is used when we need a model to have a positive-only dependent variable. This is the case of a dependent variable for count data.</p> <h2 id=comparison_with_linear_regression ><a href="#comparison_with_linear_regression" class=header-anchor >Comparison with Linear Regression</a></h2> <p>Linear regression follows the following mathematical formulation:</p> \[ \text{Linear} = \theta_0 + \theta_1 x_1 + \theta_2 x_2 + \ldots + \theta_n x_n \] <ul> <li><p>\(\theta\) - model parameters</p> <ul> <li><p>\(\theta_0\) - intercept</p> <li><p>\(\theta_1, \theta_2, \dots\) - independent variables \(x_1, x_2, \dots\) coefficients</p> </ul> <li><p>\(n\) - total number of independent variables</p> </ul> <p>Regression with count data would add the exponential function to the linear term:</p> \[ \log(y) = \theta_0 \cdot \theta_1 x_1 \cdot \theta_2 x_2 \cdot \dots \cdot \theta_n x_n \] <p>which is the same as:</p> \[ y = e^{(\theta_0 + \theta_1 x_1 + \theta_2 x_2 + \ldots + \theta_n x_n)} \] <h2 id=bayesian_regression_with_count_data__2 ><a href="#bayesian_regression_with_count_data__2" class=header-anchor >Bayesian Regression with Count Data</a></h2> <p>We can model regression with count data in two ways. The first option with a <strong>Poisson likelihood</strong> function and the second option with a <strong>negative binomial likelihood</strong> function.</p> <p>With the <strong>Poisson likelihood</strong> we model a discrete and positive dependent variable \(y\) by assuming that a given number of independent \(y\) events will occur with a known constant average rate.</p> <p>In a <strong>negative binomial likelihood</strong>, model a discrete and positive dependent variable \(y\) by assuming that a given number \(n\) of independent \(y\) events will occur by asking a yes-no question for each \(n\) with probability \(p\) until \(k\) success&#40;es&#41; is obtained. Note that it becomes identical to the Poisson likelihood when at the limit of \(k \to \infty\). This makes the negative binomial a <strong>robust option to replace a Poisson likelihood</strong> to model phenomena with a <em>overdispersion</em> &#40;excess expected variation in data&#41;. This occurs due to the Poisson likelihood making an assumption that the dependent variable \(y\) has the same mean and variance, while in the negative binomial likelihood the mean and the variance do not need to be equal.</p> <h3 id=using_poisson_likelihood ><a href="#using_poisson_likelihood" class=header-anchor >Using Poisson Likelihood</a></h3> \[ \begin{aligned} \mathbf{y} &\sim \text{Poisson}\left( e^{(\alpha + \mathbf{X} \cdot \boldsymbol{\beta})} \right) \\ \alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\ \boldsymbol{\beta} &\sim \text{Normal}(\mu_{\boldsymbol{\beta}}, \sigma_{\boldsymbol{\beta}}) \end{aligned} \] <p>where:</p> <ul> <li><p>\(\mathbf{y}\) – discrete and positive dependent variable.</p> <li><p>\(e\) – exponential.</p> <li><p>\(\alpha\) – intercept.</p> <li><p>\(\boldsymbol{\beta}\) – coefficient vector.</p> <li><p>\(\mathbf{X}\) – data matrix.</p> </ul> <p>As we can see, the linear predictor \(\alpha + \mathbf{X} \cdot \boldsymbol{\beta}\) is the logarithm of the value of \(y\). So we need to apply the exponential function the values of the linear predictor:</p> \[ \begin{aligned} \log(\mathbf{y}) &= \alpha + \mathbf{X} \cdot \boldsymbol{\beta} \\ \mathbf{y} &= e^{\alpha \mathbf{X} \cdot \boldsymbol{\beta}} \\ \mathbf{y} &= e^{\alpha} \cdot e^{\left( \mathbf{X} \cdot \boldsymbol{\beta} \right) } \end{aligned} \] <p>The intercept \(\alpha\) and coefficients \(\boldsymbol{\beta}\) are only interpretable after exponentiation.</p> <p>What remains is to specify the model parameters&#39; prior distributions:</p> <ul> <li><p>Prior Distribution of \(\alpha\) – Knowledge we possess regarding the model&#39;s intercept.</p> <li><p>Prior Distribution of \(\boldsymbol{\beta}\) – Knowledge we possess regarding the model&#39;s independent variables&#39; coefficients.</p> </ul> <p>Our goal is to instantiate a regression with count data using the observed data &#40;\(\mathbf{y}\) and \(\mathbf{X}\)&#41; and find the posterior distribution of our model&#39;s parameters of interest &#40;\(\alpha\) and \(\boldsymbol{\beta}\)&#41;. This means to find the full posterior distribution of:</p> \[ P(\boldsymbol{\theta} \mid \mathbf{y}) = P(\alpha, \boldsymbol{\beta} \mid \mathbf{y}) \] <p>Note that contrary to the linear regression, which used a Gaussian/normal likelihood function, we don&#39;t have an error parameter \(\sigma\) in our regression with count data. This is due to the Poisson not having a &quot;scale&quot; parameter such as the \(\sigma\) parameter in the Gaussian/normal distribution.</p> <p>This is easily accomplished with Turing:</p> <pre><code class=language-julia >using Turing
+using LazyArrays
+using Random:seed&#33;
+seed&#33;&#40;123&#41;
+
+@model poissonreg&#40;X,  y; predictors&#61;size&#40;X, 2&#41;&#41; &#61; begin
+    #priors
+    α ~ Normal&#40;0, 2.5&#41;
+    β ~ filldist&#40;TDist&#40;3&#41;, predictors&#41;
+
+    #likelihood
+    y ~ arraydist&#40;LazyArray&#40;@~ LogPoisson.&#40;α .&#43; X * β&#41;&#41;&#41;
+end;</code></pre> <p>Here I am specifying very weakly informative priors:</p> <ul> <li><p>\(\alpha \sim \text{Normal}(0, 2.5)\) – This means a normal distribution centered on 0 with a standard deviation of 2.5. That prior should with ease cover all possible values of \(\alpha\). Remember that the normal distribution has support over all the real number line \(\in (-\infty, +\infty)\).</p> <li><p>\(\boldsymbol{\beta} \sim \text{Student-}t(0,1,3)\) – The predictors all have a prior distribution of a Student-\(t\) distribution centered on 0 with variance 1 and degrees of freedom \(\nu = 3\). That wide-tailed \(t\) distribution will cover all possible values for our coefficients. Remember the Student-\(t\) also has support over all the real number line \(\in (-\infty, +\infty)\). Also the <code>filldist&#40;&#41;</code> is a nice Turing&#39;s function which takes any univariate or multivariate distribution and returns another distribution that repeats the input distribution.</p> </ul> <p>Turing&#39;s <code>arraydist&#40;&#41;</code> function wraps an array of distributions returning a new distribution sampling from the individual distributions. And the LazyArrays&#39; <code>LazyArray&#40;&#41;</code> constructor wrap a lazy object that wraps a computation producing an array to an array. Last, but not least, the macro <code>@~</code> creates a broadcast and is a nice short hand for the familiar dot <code>.</code> broadcasting operator in Julia. This is an efficient way to tell Turing that our <code>y</code> vector is distributed lazily as a <code>LogPoisson</code> broadcasted to <code>α</code> added to the product of the data matrix <code>X</code> and <code>β</code> coefficient vector. <code>LogPoisson</code> is Turing&#39;s efficient distribution that already apply exponentiation to all the linear predictors.</p> <h3 id=using_negative_binomial_likelihood ><a href="#using_negative_binomial_likelihood" class=header-anchor >Using Negative Binomial Likelihood</a></h3> \[ \begin{aligned} \mathbf{y} &\sim \text{Negative Binomial}\left( e^{(\alpha + \mathbf{X} \cdot \boldsymbol{\beta})}, \phi \right) \\ \phi &\sim \text{Gamma}(0.01, 0.01) \\ \alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\ \boldsymbol{\beta} &\sim \text{Normal}(\mu_{\boldsymbol{\beta}}, \sigma_{\boldsymbol{\beta}}) \end{aligned} \] <p>where:</p> <ul> <li><p>\(\mathbf{y}\) – discrete and positive dependent variable.</p> <li><p>\(e\) – exponential.</p> <li><p>\(\phi\) – dispersion.</p> <li><p>\(\phi^-\) – reciprocal dispersion.</p> <li><p>\(\alpha\) – intercept.</p> <li><p>\(\boldsymbol{\beta}\) – coefficient vector.</p> <li><p>\(\mathbf{X}\) – data matrix.</p> </ul> <p>Note that when we compare with the Poisson model, we have a new parameter \(\phi\) that parameterizes the negative binomial likelihood. This parameter is the probability of successes \(p\) of the negative binomial distribution and we generally use a Gamma distribution as prior so that the inverse of \(\phi\) which is \(\phi^-\) fulfills the function of a &quot;reciprocal dispersion&quot; parameter. Most of the time we use a weakly informative prior of the parameters shape \(\alpha = 0.01\) and scale \(\theta = 0.01\) &#40;Gelman et al., 2013; 2020&#41;. But you can also use \(\phi^- \sim \text{Exponential}(1)\) as prior &#40;McElreath, 2020&#41;.</p> <p>Here is what a \(\text{Gamma}(0.01, 0.01)\) looks like:</p> <pre><code class=language-julia >using StatsPlots, Distributions
+plot&#40;Gamma&#40;0.01, 0.01&#41;,
+        lw&#61;2, label&#61;false,
+        xlabel&#61;L&quot;\phi&quot;,
+        ylabel&#61;&quot;Density&quot;,
+        xlims&#61;&#40;0, 0.001&#41;&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/8_count_reg/code/output/gamma.svg" alt=""> <div class=text-center ><em>Gamma Distribution with \(\alpha = 0.01\) and \(\theta = 0.01\)</em></div> <br/></p> <p>In both likelihood options, what remains is to specify the model parameters&#39; prior distributions:</p> <ul> <li><p>Prior Distribution of \(\alpha\) – Knowledge we possess regarding the model&#39;s intercept.</p> <li><p>Prior Distribution of \(\boldsymbol{\beta}\) – Knowledge we possess regarding the model&#39;s independent variables&#39; coefficients.</p> </ul> <p>Our goal is to instantiate a regression with count data using the observed data &#40;\(\mathbf{y}\) and \(\mathbf{X}\)&#41; and find the posterior distribution of our model&#39;s parameters of interest &#40;\(\alpha\) and \(\boldsymbol{\beta}\)&#41;. This means to find the full posterior distribution of:</p> \[ P(\boldsymbol{\theta} \mid \mathbf{y}) = P(\alpha, \boldsymbol{\beta} \mid \mathbf{y}) \] <p>Note that contrary to the linear regression, which used a Gaussian/normal likelihood function, we don&#39;t have an error parameter \(\sigma\) in our regression with count data. This is due to neither the Poisson nor negative binomial distributions having a &quot;scale&quot; parameter such as the \(\sigma\) parameter in the Gaussian/normal distribution.</p> <h4 id=alternative_negative_binomial_parameterization ><a href="#alternative_negative_binomial_parameterization" class=header-anchor >Alternative Negative Binomial Parameterization</a></h4> <p>One last thing before we get into the details of the negative binomial distribution is to consider an alternative parameterization. Julia&#39;s <code>Distributions.jl</code> and, consequently, Turing&#39;s parameterization of the negative binomial distribution follows the following the <a href="https://reference.wolfram.com/language/ref/NegativeBinomialDistribution.html">Wolfram reference</a>:</p> \[ \text{Negative-Binomial}(k \mid r, p) \sim \frac{\Gamma(k+r)}{k! \Gamma(r)} p^r (1 - p)^k, \quad \text{for } k = 0, 1, 2, \ldots \] <p>where:</p> <ul> <li><p>\(k\) – number of failures before the \(r\)th success in a sequence of independent Bernoulli trials</p> <li><p>\(r\) – number of successes</p> <li><p>\(p\) – probability of success in an individual Bernoulli trial</p> </ul> <p>This is not ideal for most of the modeling situations that we would employ the negative binomial distribution. In particular, we want to have a parameterization that is more appropriate for count data. What we need is the familiar <strong>mean</strong> &#40;or location&#41; and <strong>variance</strong> &#40;or scale&#41; parameterization. If we look in <a href="https://mc-stan.org/docs/functions-reference/nbalt.html">Stan&#39;s documentation for the <code>neg_binomial_2</code> function</a>, we have the following two equations:</p> <a id=negbin_mean  class=anchor ></a>\[ \begin{aligned} \mu &= \frac{r (1 - p)}{p} \\ \mu + \frac{\mu^2}{\phi} &= \frac{r (1 - p)}{p^2} \end{aligned} \] <p>With a little bit of algebra, we can substitute the first equation of <span class=eqref >(<a href="#negbin_mean">11</a>)</span> into the right hand side of the second equation and get the following:</p> \[ \begin{aligned} \mu + \frac{\mu^2}{\phi} &= \frac{μ}{p} \\ 1 + \frac{\mu}{\phi} &= \frac{1}{p} \\ p &= \frac{1}{\frac{1 + \mu}{\phi}} \end{aligned} \] <p>Then in <span class=eqref >(<a href="#negbin_mean">11</a>)</span> we have:</p> \[ \begin{aligned} \mu &= r \left(1 - \left( \frac{1}{\frac{1 + \mu}{\phi}} \right) \right) \cdot \left(1 + \frac{\mu}{\phi} \right) \\ \mu &= r \left( \left(1 + \frac{\mu}{\phi} \right) - 1 \right) \\ r &= \phi \end{aligned} \] <p>Hence, the resulting map is \(\text{Negative-Binomial}(\mu, \phi) \equiv \text{Negative-Binomial} \left( r = \phi, p = \frac{1}{\frac{1 + \mu}{\phi}} \right)\). I would like to point out that this implementation was done by <a href="https://github.com/torfjelde">Tor Fjelde</a> in a <a href="https://github.com/cambridge-mlg/Covid19">COVID-19 model with the code available in GitHub</a>. So we can use this parameterization in our negative binomial regression model. But first, we need to define an alternative negative binomial distribution function:</p> <pre><code class=language-julia >function NegativeBinomial2&#40;μ, ϕ&#41;
+    p &#61; 1 / &#40;1 &#43; μ / ϕ&#41;
+    r &#61; ϕ
+
+    return NegativeBinomial&#40;r, p&#41;
+end</code></pre><pre><code class="plaintext code-output">NegativeBinomial2 (generic function with 1 method)</code></pre>
+<p>Now we create our Turing model with the alternative <code>NegBinomial2</code> parameterization:</p>
+<pre><code class=language-julia >@model negbinreg&#40;X,  y; predictors&#61;size&#40;X, 2&#41;&#41; &#61; begin
+    #priors
+    α ~ Normal&#40;0, 2.5&#41;
+    β ~ filldist&#40;TDist&#40;3&#41;, predictors&#41;
+    ϕ⁻ ~ Gamma&#40;0.01, 0.01&#41;
+    ϕ &#61; 1 / ϕ⁻
+
+    #likelihood
+    y ~ arraydist&#40;LazyArray&#40;@~ NegativeBinomial2.&#40;exp.&#40;α .&#43; X * β&#41;, ϕ&#41;&#41;&#41;
+end;</code></pre>
+<p>Here I am also specifying very weakly informative priors:</p>
+<ul>
+<li><p>\(\alpha \sim \text{Normal}(0, 2.5)\) – This means a normal distribution centered on 0 with a standard deviation of 2.5. That prior should with ease cover all possible values of \(\alpha\). Remember that the normal distribution has support over all the real number line \(\in (-\infty, +\infty)\).</p>
+
+<li><p>\(\boldsymbol{\beta} \sim \text{Student-}t(0,1,3)\) – The predictors all have a prior distribution of a Student-\(t\) distribution centered on 0 with variance 1 and degrees of freedom \(\nu = 3\). That wide-tailed \(t\) distribution will cover all possible values for our coefficients. Remember the Student-\(t\) also has support over all the real number line \(\in (-\infty, +\infty)\). Also the <code>filldist&#40;&#41;</code> is a nice Turing&#39;s function which takes any univariate or multivariate distribution and returns another distribution that repeats the input distribution.</p>
+
+<li><p>\(\phi \sim \text{Exponential}(1)\) – overdispersion parameter of the negative binomial distribution.</p>
+
+</ul>
+<p>Turing&#39;s <code>arraydist&#40;&#41;</code> function wraps an array of distributions returning a new distribution sampling from the individual distributions. And the LazyArrays&#39; <code>LazyArray&#40;&#41;</code> constructor wrap a lazy object that wraps a computation producing an array to an array. Last, but not least, the macro <code>@~</code> creates a broadcast and is a nice short hand for the familiar dot <code>.</code> broadcasting operator in Julia. This is an efficient way to tell Turing that our <code>y</code> vector is distributed lazily as a <code>NegativeBinomial2</code> broadcasted to <code>α</code> added to the product of the data matrix <code>X</code> and <code>β</code> coefficient vector. Note that <code>NegativeBinomial2</code> does not apply exponentiation so we had to include the <code>exp.&#40;&#41;</code> broadcasted function to all the linear predictors.</p>
+<h2 id=example_-_roaches_extermination ><a href="#example_-_roaches_extermination" class=header-anchor >Example - Roaches Extermination</a></h2>
+<p>For our example, I will use a famous dataset called <code>roaches</code> &#40;Gelman &amp; Hill, 2007&#41;, which is data on the efficacy of a pest management system at reducing the number of roaches in urban apartments. It has 262 observations and the following variables:</p>
+<ul>
+<li><p><code>y</code> – number of roaches caught.</p>
+
+<li><p><code>roach1</code> – pretreatment number of roaches.</p>
+
+<li><p><code>treatment</code> – binary/dummy &#40;0 or 1&#41; for treatment indicator.</p>
+
+<li><p><code>senior</code> – binary/dummy &#40;0 or 1&#41; for only elderly residents in building.</p>
+
+<li><p><code>exposure2</code> – number of days for which the roach traps were used</p>
+
+</ul>
+<p>Ok let&#39;s read our data with <code>CSV.jl</code> and output into a <code>DataFrame</code> from <code>DataFrames.jl</code>:</p>
+<pre><code class=language-julia >using DataFrames, CSV, HTTP
+
+url &#61; &quot;https://raw.githubusercontent.com/storopoli/Bayesian-Julia/master/datasets/roaches.csv&quot;
+roaches &#61; CSV.read&#40;HTTP.get&#40;url&#41;.body, DataFrame&#41;
+describe&#40;roaches&#41;</code></pre><pre><code class="plaintext code-output">5×7 DataFrame
+ Row │ variable   mean       min   median   max        nmissing  eltype
+     │ Symbol     Float64    Real  Float64  Real       Int64     DataType
+─────┼────────────────────────────────────────────────────────────────────
+   1 │ y          25.6489     0        3.0  357               0  Int64
+   2 │ roach1     42.1935     0.0      7.0  450.0             0  Float64
+   3 │ treatment   0.603053   0        1.0    1               0  Int64
+   4 │ senior      0.305344   0        0.0    1               0  Int64
+   5 │ exposure2   1.02105    0.2      1.0    4.28571         0  Float64</code></pre>
+<p>As you can see from the <code>describe&#40;&#41;</code> output the average number of roaches caught by the pest management system is around 26 roaches. The average number of roaches pretreatment is around 42 roaches &#40;oh boy...&#41;. 30&#37; of the buildings has only elderly residents and 60&#37; of the buildings received a treatment by the pest management system. Also note that the traps were set in general for only 1 day and it ranges from 0.2 days &#40;almost 5 hours&#41; to 4.3 days &#40;which is approximate 4 days and 7 hours&#41;.</p>
+<h3 id=poisson_regression ><a href="#poisson_regression" class=header-anchor >Poisson Regression</a></h3>
+<p>Let&#39;s first run the Poisson regression. First, we instantiate our model with the data:</p>
+<pre><code class=language-julia >X &#61; Matrix&#40;select&#40;roaches, Not&#40;:y&#41;&#41;&#41;
+y &#61; roaches&#91;:, :y&#93;
+model_poisson &#61; poissonreg&#40;X, y&#41;;</code></pre>
+<p>And, finally, we will sample from the Turing model. We will be using the default <code>NUTS&#40;&#41;</code> sampler with <code>2_000</code> samples, with 4 Markov chains using multiple threads <code>MCMCThreads&#40;&#41;</code>:</p>
+<pre><code class=language-julia >chain_poisson &#61; sample&#40;model_poisson, NUTS&#40;&#41;, MCMCThreads&#40;&#41;, 2_000, 4&#41;
+summarystats&#40;chain_poisson&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse         ess      rhat   ess_per_sec
+      Symbol   Float64   Float64    Float64   Float64     Float64   Float64       Float64
+
+           α    2.9673    0.0440     0.0005    0.0008   2978.4475    1.0018       54.1871
+        β[1]    0.0065    0.0001     0.0000    0.0000   6501.9548    1.0000      118.2905
+        β[2]   -0.5137    0.0251     0.0003    0.0004   4584.4094    0.9999       83.4045
+        β[3]   -0.3791    0.0337     0.0004    0.0005   5100.2314    1.0014       92.7888
+        β[4]    0.1606    0.0365     0.0004    0.0007   3077.6685    1.0015       55.9922
+</code></pre>
+<p>We had no problem with the Markov chains as all the <code>rhat</code> are well below <code>1.01</code> &#40;or above <code>0.99</code>&#41;. Note that the coefficients are in log scale. So we need to apply the exponential function to them. We can do this with a transformation in a <code>DataFrame</code> constructed from a <code>Chains</code> object:</p>
+<pre><code class=language-julia >using Chain
+
+@chain quantile&#40;chain_poisson&#41; begin
+    DataFrame
+    select&#40;_,
+        :parameters,
+        names&#40;_, r&quot;&#37;&quot;&#41; .&#61;&gt; ByRow&#40;exp&#41;,
+        renamecols&#61;false&#41;
+end</code></pre><pre><code class="plaintext code-output">5×6 DataFrame
+ Row │ parameters  2.5%       25.0%      50.0%      75.0%      97.5%
+     │ Symbol      Float64    Float64    Float64    Float64    Float64
+─────┼───────────────────────────────────────────────────────────────────
+   1 │ α           17.8531    18.863     19.4314    20.012     21.2201
+   2 │ β[1]         1.00637    1.00648    1.00655    1.00661    1.00672
+   3 │ β[2]         0.569208   0.588065   0.598444   0.608463   0.628556
+   4 │ β[3]         0.641059   0.669048   0.684448   0.700671   0.730596
+   5 │ β[4]         1.09057    1.14658    1.17494    1.20359    1.2594</code></pre>
+<p>Let&#39;s analyze our results. The intercept <code>α</code> is the basal number of roaches caught <code>y</code> and has a median value of 19.4 roaches caught. The remaining 95&#37; credible intervals for the <code>β</code>s can be interpreted as follows:</p>
+<ul>
+<li><p><code>β&#91;1&#93;</code> – first column of <code>X</code>, <code>roach1</code>, has 95&#37; credible interval 1.01 to 1.01. This means that each <strong>increase</strong> in one unit of <code>roach1</code> is related to an increase of 1&#37; more roaches caught.</p>
+
+<li><p><code>β&#91;2&#93;</code> – second column of <code>X</code>, <code>treatment</code>, has 95&#37; credible interval 0.57 to 0.63. This means that if an apartment was treated with the pest management system then we expect an <strong>decrease</strong> of around 40&#37; roaches caught.</p>
+
+<li><p><code>β&#91;3&#93;</code> – third column of <code>X</code>, <code>senior</code>, has a 95&#37; credible interval from 0.64 to 0.73. This means that if an apartment building has only elderly residents then we expect an <strong>decrease</strong> of around 30&#37; roaches caught.</p>
+
+<li><p><code>β&#91;4&#93;</code> – fourth column of <code>X</code>, <code>exposure2</code>, has a 95&#37; credible interval from 1.09 to 1.26. Each increase in one day for the exposure of traps in an apartment we expect an <strong>increase</strong> of between 9&#37; to 26&#37; roaches caught.</p>
+
+</ul>
+<p>That&#39;s how you interpret 95&#37; credible intervals from a <code>quantile&#40;&#41;</code> output of a regression with count data <code>Chains</code> object converted from a log scale.</p>
+<h3 id=negative_binomial_regression ><a href="#negative_binomial_regression" class=header-anchor >Negative Binomial Regression</a></h3>
+<p>Let&#39;s now run the negative binomial regression.</p>
+<pre><code class=language-julia >model_negbin &#61; negbinreg&#40;X, y&#41;;</code></pre>
+<p>We will also default <code>NUTS&#40;&#41;</code> sampler with <code>2_000</code> samples, with 4 Markov chains using multiple threads <code>MCMCThreads&#40;&#41;</code>:</p>
+<pre><code class=language-julia >chain_negbin &#61; sample&#40;model_negbin, NUTS&#40;&#41;,MCMCThreads&#40;&#41;, 2_000, 4&#41;
+summarystats&#40;chain_negbin&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse         ess      rhat   ess_per_sec
+      Symbol   Float64   Float64    Float64   Float64     Float64   Float64       Float64
+
+           α    2.3934    0.3801     0.0042    0.0063   3599.9283    1.0009       77.5329
+        β[1]    0.0127    0.0016     0.0000    0.0000   9237.9603    1.0000      198.9610
+        β[2]   -0.7342    0.1566     0.0018    0.0020   5508.5010    1.0007      118.6384
+        β[3]   -0.3178    0.1638     0.0018    0.0019   5953.9032    1.0006      128.2312
+        β[4]    0.4263    0.3479     0.0039    0.0059   3513.9062    1.0011       75.6802
+          ϕ⁻    1.4090    0.0781     0.0009    0.0009   6054.5560    0.9998      130.3990
+</code></pre>
+<p>We had no problem with the Markov chains as all the <code>rhat</code> are well below <code>1.01</code> &#40;or above <code>0.99</code>&#41;. Note that the coefficients are in log scale. So we need to also apply the exponential function as we did before.</p>
+<pre><code class=language-julia >@chain quantile&#40;chain_negbin&#41; begin
+    DataFrame
+    select&#40;_,
+        :parameters,
+        names&#40;_, r&quot;&#37;&quot;&#41; .&#61;&gt; ByRow&#40;exp&#41;,
+        renamecols&#61;false&#41;
+end</code></pre><pre><code class="plaintext code-output">6×6 DataFrame
+ Row │ parameters  2.5%      25.0%     50.0%      75.0%      97.5%
+     │ Symbol      Float64   Float64   Float64    Float64    Float64
+─────┼─────────────────────────────────────────────────────────────────
+   1 │ α           4.98712   8.5494    11.0754    14.2469    21.9483
+   2 │ β[1]        1.00984   1.01169    1.01277    1.01385    1.01609
+   3 │ β[2]        0.34999   0.431311   0.479913   0.533949   0.651594
+   4 │ β[3]        0.531909  0.650751   0.726857   0.811715   1.00692
+   5 │ β[4]        0.825398  1.19984    1.506      1.92108    3.20356
+   6 │ ϕ⁻          3.53697   3.87565    4.08581    4.30883    4.78988</code></pre>
+<p>Our results show much more uncertainty in the coefficients than in the Poisson regression. So it might be best to use the Poisson regression in the <code>roaches</code> dataset.</p>
+<h2 id=references ><a href="#references" class=header-anchor >References</a></h2>
+<p>Gelman, A., &amp; Hill, J. &#40;2007&#41;. Data analysis using regression and multilevel/hierarchical models. Cambridge university press.</p>
+<p>Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., &amp; Rubin, D. B. &#40;2013&#41;. Bayesian Data Analysis. Chapman and Hall/CRC.</p>
+<p>Gelman, A., Hill, J., &amp; Vehtari, A. &#40;2020&#41;. Regression and other stories. Cambridge University Press.</p>
+<p>McElreath, R. &#40;2020&#41;. <em>Statistical rethinking: A Bayesian course with examples in R and Stan</em>. CRC press.</p>
+
+<div class=page-foot >
+  <div class=copyright >
+    Last modified: August 24, 2021. Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+  </div>
+</div>
+</div>
+    </div> 
+    </div> 
+    </div> <!-- end of class page-wrap-->
+    
+      <script src="/Bayesian-Julia/libs/katex/katex.min.js"></script>
+<script src="/Bayesian-Julia/libs/katex/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+      <script src="/Bayesian-Julia/libs/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();hljs.configure({tabReplace: '    '});</script>

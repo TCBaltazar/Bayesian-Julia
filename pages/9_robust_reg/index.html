@@ -1,0 +1,109 @@
+<!doctype html> <html lang=en > <meta charset=UTF-8 > <meta name=viewport  content="width=device-width, initial-scale=1"> <link rel=stylesheet  href="/Bayesian-Julia/libs/katex/katex.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/libs/highlight/github.min.css"> <link rel=stylesheet  href="/Bayesian-Julia/css/jtd.css"> <link rel=icon  href="/Bayesian-Julia/assets/favicon.ico"> <title>Robust Bayesian Regression</title> <div class=page-wrap > <div class=side-bar > <div class=header > <a href="/Bayesian-Julia/" class=title > Bayesian Stats </a> </div> <label for=show-menu  class=show-menu >MENU</label> <input type=checkbox  id=show-menu  role=button > <div class=menu  id=side-menu > <ul class=menu-list > <li class="menu-list-item "><a href="/Bayesian-Julia/" class="menu-list-link ">Home</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/1_why_Julia/" class="menu-list-link ">1. Why Julia?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/2_bayes_stats/" class="menu-list-link ">2. What is Bayesian Statistics?</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/3_prob_dist/" class="menu-list-link ">3. Common Probability Distributions</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/4_Turing/" class="menu-list-link ">4. How to use Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/5_MCMC/" class="menu-list-link ">5. Markov Chain Monte Carlo (MCMC)</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/6_linear_reg/" class="menu-list-link ">6. Bayesian Linear Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/7_logistic_reg/" class="menu-list-link ">7. Bayesian Logistic Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/8_count_reg/" class="menu-list-link ">8. Bayesian Regression with Count Data</a> <li class="menu-list-item active"><a href="/Bayesian-Julia/pages/9_robust_reg/" class="menu-list-link active">9. Robust Bayesian Regression</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/10_multilevel_models/" class="menu-list-link ">10. Multilevel Models</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/11_Turing_tricks/" class="menu-list-link ">11. Computational Tricks with Turing</a> <li class="menu-list-item "><a href="/Bayesian-Julia/pages/12_epi_models/" class="menu-list-link ">12. Bayesian Epidemiological Models</a> </ul> </div> <div class=footer > <a href="https://www.julialang.org"><img style="height:50px;padding-left:10px;margin-bottom:15px;" src="https://julialang.org/assets/infra/logo.svg" alt="Julia Logo"></a> </div> </div> <div class=main-content-wrap > <div class=main-content > <div class=main-header > <a id=github  href="https://github.com/storopoli/Bayesian-Julia">Code on GitHub</a> </div> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-186284914-6"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-186284914-6'); </script> <div class=franklin-content ><div class=franklin-toc ><ol><li><a href="#comparison_between_normal_vs_student-t">Comparison Between Normal vs Student-\(t\)</a><li><a href="#bayesian_robust_regression">Bayesian Robust Regression</a><li><a href="#example_-_duncans_prestige">Example - Duncan&#39;s Prestige</a><li><a href="#references">References</a></ol></div> <h1 id=robust_bayesian_regression ><a href="#robust_bayesian_regression" class=header-anchor >Robust Bayesian Regression</a></h1> <p>Leaving the universe of linear models, we start to venture into generalized linear models &#40;GLM&#41;. The third of these is <strong>robust regression</strong>.</p> <p>A regression with count data behaves exactly like a linear model: it makes a prediction simply by computing a weighted sum of the independent variables \(\mathbf{X}\) by the estimated coefficients \(\boldsymbol{\beta}\), plus an intercept \(\alpha\). However, instead of using a Gaussian/normal likelihood function, it uses a <strong>Student-\(t\) likelihood function</strong>.</p> <p>We use robust regression in the same context as linear regression: our dependent variable is continuous. But robust regression allows us to <strong>better handle outliers</strong> in our data.</p> <p>Before we dive in the nuts and bolts of robust regression let&#39;s remember the Gaussian/normal curve that has a bell shape &#40;figure below&#41;. It does not have a &quot;fat tail&quot; &#40;or sometimes known as &quot;long tail&quot;&#41;. In other words, the observations are not far from the mean. When we use this distribution as a likelihood function in the Bayesian models, we force that all estimates must be conditioned into a normal distribution of the dependent variable. If there are many outliers in the data &#40;observations quite far from the mean&#41;, this causes the estimates of the independent variables&#39; coefficients to be unstable. This is because the normal distribution cannot contemplate observations that are very spread away from the mean without having to change the mean&#39;s position &#40;or location&#41;. In other words, the bell curve needs to &quot;shift&quot; to be able to contemplate outliers, thus making the inference unstable.</p> <pre><code class=language-julia >using StatsPlots, Distributions, LaTeXStrings
+
+plot&#40;Normal&#40;0, 1&#41;,
+        lw&#61;5, label&#61;false,
+        xlabel&#61;L&quot;x&quot;,
+        ylabel&#61;&quot;Density&quot;&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/9_robust_reg/code/output/normal.svg" alt=""> <div class=text-center ><em>Normal with \(\mu=0\) and \(\sigma = 1\)</em></div> <br/></p> <p>So we need a more &quot;malleable&quot; distribution as a likelihood function. A distribution that is more robust to outliers. A distribution similar to Normal but that has &quot;fatter&quot; &#40;or &quot;longer&quot;&#41; tails to precisely contemplate observations very far from the average without having to &quot;shift&quot; the mean&#39;s position &#40;or location&#41;. For that we have the Student-\(t\) distribution. See the figure below to remember its shape.</p> <pre><code class=language-julia >plot&#40;TDist&#40;2&#41;,
+        lw&#61;5, label&#61;false,
+        xlabel&#61;L&quot;x&quot;,
+        ylabel&#61;&quot;Density&quot;,
+        xlims&#61;&#40;-4, 4&#41;&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/9_robust_reg/code/output/tdist.svg" alt=""> <div class=text-center ><em>Student-\(t\) with \(\nu = 2\)</em></div> <br/></p> <h2 id=comparison_between_normal_vs_student-t ><a href="#comparison_between_normal_vs_student-t" class=header-anchor >Comparison Between Normal vs Student-\(t\)</a></h2> <p>Take a look at the tails in the comparison below:</p> <pre><code class=language-julia >plot&#40;Normal&#40;0, 1&#41;,
+        lw&#61;5, label&#61;&quot;Normal&quot;,
+        xlabel&#61;L&quot;x&quot;,
+        ylabel&#61;&quot;Density&quot;,
+        xlims&#61;&#40;-4, 4&#41;&#41;
+plot&#33;&#40;TDist&#40;2&#41;,
+        lw&#61;5, label&#61;&quot;Student&quot;&#41;</code></pre> <p><img src="/Bayesian-Julia/assets/pages/9_robust_reg/code/output/comparison_normal_student.svg" alt=""> <div class=text-center ><em>Comparison between Normal and Student-\(t\) Distributions</em></div> <br/></p> <h2 id=bayesian_robust_regression ><a href="#bayesian_robust_regression" class=header-anchor >Bayesian Robust Regression</a></h2> <p>The standard approach for modeling a continuous dependent variable is with a Gaussian/normal likelihood function. This implies that the model error, \(\sigma\) of the Gaussian/normal likelihood function is distributed as a normal distribution:</p> \[ \begin{aligned} \mathbf{y} &\sim \text{Normal}\left( \alpha + \mathbf{X} \cdot \boldsymbol{\beta}, \sigma \right) \\ \alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\ \boldsymbol{\beta} &\sim \text{Normal}(\mu_{\boldsymbol{\beta}}, \sigma_{\boldsymbol{\beta}}) \\ \sigma &\sim \text{Exponential}(\lambda_\sigma) \end{aligned} \] <p>From a Bayesian point of view, there is nothing special about Gaussian/normal likelihood function It is just a probabilistic distribution specified in a model. We can make the model more robust by using a Student-\(t\) distribution as a likelihood function. This implies that the model error, \(\sigma\) does not follow a normal distribution, instead it follows a Student-\(t\) distribution:</p> \[ \begin{aligned} \mathbf{y} &\sim \text{Student}\left( \nu, \alpha + \mathbf{X} \cdot \boldsymbol{\beta}, \sigma \right) \\ \alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\ \boldsymbol{\beta} &\sim \text{Normal}(\mu_{\boldsymbol{\beta}}, \sigma_{\boldsymbol{\beta}}) \\ \nu &\sim \text{Log-Normal}(2, 1) \\ \sigma &\sim \text{Exponential}(\lambda_\sigma) \end{aligned} \] <p>Here are some differences:</p> <ol> <li><p>Student-\(t\) likelihood function requires one additional parameter: \(\nu\), degrees of freedom. These control how &quot;fat&quot; &#40;or &quot;long&quot;&#41; the tails will be. Values of \(\nu> 20\) forces the Student-\(t\) distribution to practically become a normal distribution.</p> <li><p>There is nothing special about \(\nu\). It is just another parameter for the model to estimate. So just specify a prior on it. In this case, I am using a Log-Normal distribution with mean 2 and standard deviation 1.</p> </ol> <p>Note that there is also nothing special about the priors of the \(\boldsymbol{\beta}\) coefficients or the intercept \(\alpha\). We could very well also specify other distributions as priors or even make the model even more robust to outliers by specifying priors as Student-\(t\) distributions:</p> \[ \begin{aligned} \alpha &\sim \text{Student}(\nu_\alpha, \mu_\alpha, \sigma_\alpha) \\ \boldsymbol{\beta} &\sim \text{Student}(\nu_{\boldsymbol{\beta}}, \mu_{\boldsymbol{\beta}}, \sigma_{\boldsymbol{\beta}}) \\ \nu_\alpha &\sim \text{Log-Normal}(1, 1) \\ \nu_{\boldsymbol{\beta}} &\sim \text{Log-Normal}(1, 1) \end{aligned} \] <p>Our goal is to instantiate a regression with count data using the observed data &#40;\(\mathbf{y}\) and \(\mathbf{X}\)&#41; and find the posterior distribution of our model&#39;s parameters of interest &#40;\(\alpha\) and \(\boldsymbol{\beta}\)&#41;. This means to find the full posterior distribution of:</p> \[ P(\boldsymbol{\theta} \mid \mathbf{y}) = P(\alpha, \boldsymbol{\beta}, \sigma \mid \mathbf{y}) \] <p>This is easily accomplished with Turing:</p> <pre><code class=language-julia >using Turing
+using Statistics: mean, std
+using StatsBase:mad
+using Random:seed&#33;
+seed&#33;&#40;123&#41;
+
+@model robustreg&#40;X, y; predictors&#61;size&#40;X, 2&#41;&#41; &#61; begin
+    #priors
+    νₐ ~ LogNormal&#40;1, 1&#41;
+    νᵦ ~ LogNormal&#40;1, 1&#41;
+    α ~ LocationScale&#40;median&#40;y&#41;, 2.5 * mad&#40;y&#41;, TDist&#40;νₐ&#41;&#41;
+    β ~ filldist&#40;TDist&#40;νᵦ&#41;, predictors&#41;
+    σ ~ Exponential&#40;1&#41;
+    ν ~ LogNormal&#40;2, 1&#41;
+
+    #likelihood
+    y ~ arraydist&#40;LocationScale.&#40;α .&#43; X * β, σ, TDist.&#40;ν&#41;&#41;&#41;
+end;</code></pre> <p>Here I am specifying very weakly informative priors:</p> <ul> <li><p>\(\alpha \sim \text{Student-}t(\operatorname{median}(\mathbf{y}), 2.5 \cdot \operatorname{MAD}(\mathbf{y}), \nu_{\alpha})\) – This means a Student-\(t\) distribution centered on <code>y</code>&#39;s median with variance 2.5 times the mean absolute deviation &#40;MAD&#41; of <code>y</code>. That prior should with ease cover all possible values of \(\alpha\). Remember that the Student-\(t\) distribution has support over all the real number line \(\in (-\infty, +\infty)\). The <code>LocationScale&#40;&#41;</code> Turing&#39;s function adds location and scale parameters to distributions that doesn&#39;t have it. This is the case with the <code>TDist&#40;&#41;</code> distribution which only takes the <code>ν</code> degrees of of freedom as parameter.</p> <li><p>\(\boldsymbol{\beta} \sim \text{Student-}t(0,1,\nu_{\boldsymbol{\beta}})\) – The predictors all have a prior distribution of a Student-\(t\) distribution centered on 0 with variance 1 and degrees of freedom \(\nu_{\boldsymbol{\beta}}\). That wide-tailed \(t\) distribution will cover all possible values for our coefficients. Remember the Student-\(t\) also has support over all the real number line \(\in (-\infty, +\infty)\). Also the <code>filldist&#40;&#41;</code> is a nice Turing&#39;s function which takes any univariate or multivariate distribution and returns another distribution that repeats the input distribution.</p> <li><p>\(\sigma \sim \text{Exponential}(1)\) – A wide-tailed-positive-only distribution perfectly suited for our model&#39;s error.</p> </ul> <p>Turing&#39;s <code>arraydist&#40;&#41;</code> function wraps an array of distributions returning a new distribution sampling from the individual distributions. It creates a broadcast and is a nice short hand for the familiar dot <code>.</code> broadcasting operator in Julia. By specifying that <code>y</code> vector is &quot;broadcasted distributed&quot; as a <code>LocationScale</code> broadcasted to mean &#40;location parameter&#41; <code>α</code> added to the product of the data matrix <code>X</code> and <code>β</code> coefficient vector along with a variance &#40;scale parameter&#41; <code>σ</code>. To conclude, we place inside the <code>LocationScale</code> a broadcasted <code>TDist</code> with <code>ν</code> degrees of freedom parameter.</p> <h2 id=example_-_duncans_prestige ><a href="#example_-_duncans_prestige" class=header-anchor >Example - Duncan&#39;s Prestige</a></h2> <p>For our example, I will use a famous dataset called <code>duncan</code> &#40;Duncan, 1961&#41;, which is data from occupation&#39;s prestige filled with outliers. It has 45 observations and the following variables:</p> <ul> <li><p><code>profession</code>: name of the profession.</p> <li><p><code>type</code>: type of occupation. A qualitative variable:</p> <ul> <li><p><code>prof</code> - professional or management.</p> <li><p><code>wc</code> - white-collar.</p> <li><p><code>bc</code> - blue-collar.</p> </ul> <li><p><code>income</code>: percentage of people in the occupation earning over U&#36; 3,500 per year in 1950 &#40;more or less U&#36; 36,000 in 2017&#41;.</p> <li><p><code>education</code>: percentage of people in the occupation who had a high school diploma in 1949 &#40;which, being cynical, we can say is somewhat equivalent to a PhD degree in 2017&#41;.</p> <li><p><code>prestige</code>: percentage of respondents in the survey who classified their occupation as at least &quot;good&quot; with respect to prestige.</p> </ul> <p>Ok let&#39;s read our data with <code>CSV.jl</code> and output into a <code>DataFrame</code> from <code>DataFrames.jl</code>:</p> <pre><code class=language-julia >using DataFrames, CSV, HTTP
+
+url &#61; &quot;https://raw.githubusercontent.com/storopoli/Bayesian-Julia/master/datasets/duncan.csv&quot;
+duncan &#61; CSV.read&#40;HTTP.get&#40;url&#41;.body, DataFrame&#41;
+describe&#40;duncan&#41;</code></pre><pre><code class="plaintext code-output">5×7 DataFrame
+ Row │ variable    mean     min          median  max             nmissing  eltype
+     │ Symbol      Union…   Any          Union…  Any             Int64     DataType
+─────┼──────────────────────────────────────────────────────────────────────────────
+   1 │ profession           RR.engineer          welfare.worker         0  String
+   2 │ type                 bc                   wc                     0  String
+   3 │ income      41.8667  7            42.0    81                     0  Int64
+   4 │ education   52.5556  7            45.0    100                    0  Int64
+   5 │ prestige    47.6889  3            41.0    97                     0  Int64</code></pre> <p>As you can see from the <code>describe&#40;&#41;</code> output the average occupation&#39;s percentage of respondents who classified their occupation as at least &quot;good&quot; with respect to prestige is around 41&#37;. But <code>prestige</code> variable is very dispersed and actually has a bimodal distribution:</p> <pre><code class=language-julia >@df duncan density&#40;:prestige, label&#61;false&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/9_robust_reg/code/output/prestige_density.svg" alt=""> <div class=text-center ><em>Density Plot of <code>prestige</code></em></div> <br/></p>
+<p>Besides that, the mean <code>prestige</code> per <code>type</code> shows us where the source of variation might come from:</p>
+<pre><code class=language-julia >gdf_type &#61; groupby&#40;duncan, :type&#41;
+@df combine&#40;gdf_type, :prestige &#61;&gt; mean&#41; bar&#40;:type, :prestige_mean, label&#61;false&#41;</code></pre>
+<p><img src="/Bayesian-Julia/assets/pages/9_robust_reg/code/output/prestige_per_type.svg" alt=""> <div class=text-center ><em>Mean <code>prestige</code> per <code>type</code></em></div> <br/></p>
+<p>Now let&#39;s us instantiate our model with the data:</p>
+<pre><code class=language-julia >X &#61; Matrix&#40;select&#40;duncan, &#91;:income, :education&#93;&#41;&#41;
+y &#61; duncan&#91;:, :prestige&#93;
+model &#61; robustreg&#40;X, y&#41;;</code></pre>
+<p>And, finally, we will sample from the Turing model. We will be using the default <code>NUTS&#40;&#41;</code> sampler with <code>2_000</code> samples, with 4 Markov chains using multiple threads <code>MCMCThreads&#40;&#41;</code>:</p>
+<pre><code class=language-julia >chain &#61; sample&#40;model, NUTS&#40;&#41;, MCMCThreads&#40;&#41;, 2_000, 4&#41;
+summarystats&#40;chain&#41;</code></pre><pre><code class="plaintext code-output">Summary Statistics
+  parameters      mean       std   naive_se      mcse         ess      rhat   ess_per_sec
+      Symbol   Float64   Float64    Float64   Float64     Float64   Float64       Float64
+
+          νₐ    4.8933    6.1423     0.0687    0.0979   5469.6950    0.9999      150.6720
+          νᵦ    5.3556    6.9368     0.0776    0.1011   4645.8114    1.0000      127.9767
+           α   -7.5700    2.9869     0.0334    0.0368   6242.9854    0.9999      171.9736
+        β[1]    0.7729    0.1061     0.0012    0.0019   3675.3451    1.0011      101.2436
+        β[2]    0.4449    0.0852     0.0010    0.0015   3785.1601    1.0013      104.2686
+           σ    7.2431    1.7813     0.0199    0.0320   3335.2214    1.0009       91.8743
+           ν    2.9834    2.9854     0.0334    0.0573   3222.2035    1.0009       88.7610
+</code></pre>
+<p>We had no problem with the Markov chains as all the <code>rhat</code> are well below <code>1.01</code> &#40;or above <code>0.99</code>&#41;. Also note that all degrees of freedom parameters, the <code>ν</code> stuff, have been estimated with mean around 3 to 5, which indeed signals that our model needed fat tails to make a robust inference. Our model has an error <code>σ</code> of around 7. So it estimates occupation&#39;s prestige ±7. The intercept <code>α</code> is the basal occupation&#39;s prestige value. So each occupation has -7±7 prestige before we add the coefficients multiplied by the occupations&#39; independent variables. And from our coefficients \(\boldsymbol{\beta}\), we can see that the <code>quantile&#40;&#41;</code> tells us the uncertainty around their estimates:</p>
+<pre><code class=language-julia >quantile&#40;chain&#41;</code></pre><pre><code class="plaintext code-output">Quantiles
+  parameters       2.5%     25.0%     50.0%     75.0%     97.5%
+      Symbol    Float64   Float64   Float64   Float64   Float64
+
+          νₐ     0.4920    1.6149    3.0650    5.9616   20.0844
+          νᵦ     0.6316    1.8974    3.4239    6.2669   21.5379
+           α   -13.3399   -9.5957   -7.5923   -5.6514   -1.6374
+        β[1]     0.5377    0.7124    0.7765    0.8374    0.9756
+        β[2]     0.2747    0.3906    0.4451    0.4972    0.6184
+           σ     4.1343    5.9644    7.1011    8.3579   11.1625
+           ν     1.0018    1.6301    2.2230    3.2859    9.6765
+</code></pre>
+<ul>
+<li><p><code>β&#91;1&#93;</code> – first column of <code>X</code>, <code>income</code>, has 95&#37; credible interval from 0.55 to 0.96. This means that an increase of U&#36; 1,000 in occupations&#39; annual income is associated with an increase in roughly 0.5 to 1.0 in occupation&#39;s prestige.</p>
+
+<li><p><code>β&#91;2&#93;</code> – second column of <code>X</code>, <code>education</code>, has a 95&#37; credible interval from 0.29 to 0.61. So we expect that an increase of 1&#37; in occupations&#39; percentage of respondents who had a high school diploma increases occupations&#39; prestige roughly 0.3 to 0.6.</p>
+
+</ul>
+<p>That&#39;s how you interpret 95&#37; credible intervals from a <code>quantile&#40;&#41;</code> output of a robust regression <code>Chains</code> object.</p>
+<h2 id=references ><a href="#references" class=header-anchor >References</a></h2>
+<p>Duncan, O. D. &#40;1961&#41;. A socioeconomic index for all occupations. Class: Critical Concepts, 1, 388–426.</p>
+
+<div class=page-foot >
+  <div class=copyright >
+    Last modified: August 24, 2021. Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+  </div>
+</div>
+</div>
+    </div> 
+    </div> 
+    </div> <!-- end of class page-wrap-->
+    
+      <script src="/Bayesian-Julia/libs/katex/katex.min.js"></script>
+<script src="/Bayesian-Julia/libs/katex/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+      <script src="/Bayesian-Julia/libs/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();hljs.configure({tabReplace: '    '});</script>
